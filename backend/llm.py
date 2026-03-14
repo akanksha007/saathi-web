@@ -9,7 +9,14 @@ from openai import AsyncOpenAI
 
 from config import OPENAI_API_KEY, LLM_MODEL, LLM_MAX_TOKENS, LLM_TEMPERATURE
 
-client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+_client = None
+
+
+def _get_client() -> AsyncOpenAI:
+    global _client
+    if _client is None:
+        _client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+    return _client
 
 
 async def stream_response(
@@ -35,7 +42,7 @@ async def stream_response(
     start_time = time.time()
 
     try:
-        stream = await client.chat.completions.create(
+        stream = await _get_client().chat.completions.create(
             model=LLM_MODEL,
             messages=messages,
             max_tokens=LLM_MAX_TOKENS,

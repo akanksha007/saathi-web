@@ -10,7 +10,14 @@ from openai import AsyncOpenAI
 
 from config import OPENAI_API_KEY, WHISPER_MODEL, WHISPER_LANGUAGE, TEMP_DIR
 
-client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+_client = None
+
+
+def _get_client() -> AsyncOpenAI:
+    global _client
+    if _client is None:
+        _client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+    return _client
 
 
 async def transcribe(audio_bytes: bytes) -> tuple[str | None, float]:
@@ -40,7 +47,7 @@ async def transcribe(audio_bytes: bytes) -> tuple[str | None, float]:
 
         # Call Whisper API
         with open(temp_path, "rb") as audio_file:
-            response = await client.audio.transcriptions.create(
+            response = await _get_client().audio.transcriptions.create(
                 model=WHISPER_MODEL,
                 file=audio_file,
                 language=WHISPER_LANGUAGE,

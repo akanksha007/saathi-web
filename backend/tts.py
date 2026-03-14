@@ -8,7 +8,14 @@ from openai import AsyncOpenAI
 
 from config import OPENAI_API_KEY, TTS_MODEL, TTS_VOICE
 
-client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+_client = None
+
+
+def _get_client() -> AsyncOpenAI:
+    global _client
+    if _client is None:
+        _client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+    return _client
 
 
 async def synthesize(text: str) -> tuple[bytes | None, float]:
@@ -27,7 +34,7 @@ async def synthesize(text: str) -> tuple[bytes | None, float]:
     start_time = time.time()
 
     try:
-        response = await client.audio.speech.create(
+        response = await _get_client().audio.speech.create(
             model=TTS_MODEL,
             voice=TTS_VOICE,
             input=text,
