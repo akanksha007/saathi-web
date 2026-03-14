@@ -33,12 +33,16 @@ async def health_check():
     matching_vars = {k: v[:8] + "..." for k, v in os.environ.items()
                      if "OPENAI" in k.upper() or "API_KEY" in k.upper()}
 
+    # List ALL env var names (not values) to see what Railway injects
+    all_env_names = sorted(os.environ.keys())
+
     return {
         "status": "ok",
         "config_key_set": bool(OPENAI_API_KEY),
         "raw_env_key_set": bool(raw_env),
         "raw_env_preview": f"{raw_env[:8]}..." if raw_env else None,
         "matching_env_vars": matching_vars,
+        "all_env_var_names": all_env_names,
     }
 
 # Resolve frontend path (works both locally and in Docker)
