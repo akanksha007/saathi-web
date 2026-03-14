@@ -6,10 +6,12 @@ import os
 import sys
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=False)  # Don't override Railway's env vars
 
 # API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+print(f"🔧 Config loaded: OPENAI_API_KEY={'set (' + OPENAI_API_KEY[:8] + '...)' if OPENAI_API_KEY else 'NOT SET'}")
 
 if not OPENAI_API_KEY:
     print("⚠️  WARNING: OPENAI_API_KEY is not set! All STT/LLM/TTS calls will fail.")
