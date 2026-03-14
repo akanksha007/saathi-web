@@ -1,6 +1,6 @@
 """
 Saathi Web Sandbox — Speech-to-Text Module.
-Converts Hindi/Hinglish audio to text using OpenAI Whisper API.
+Converts Hindi/Hinglish audio to text using Groq Whisper (fast) or OpenAI Whisper.
 """
 
 import os
@@ -8,7 +8,7 @@ import time
 import tempfile
 from openai import AsyncOpenAI
 
-from config import OPENAI_API_KEY, WHISPER_MODEL, WHISPER_LANGUAGE, TEMP_DIR
+from config import OPENAI_API_KEY, GROQ_API_KEY, STT_PROVIDER, WHISPER_MODEL, WHISPER_LANGUAGE, TEMP_DIR
 
 _client = None
 
@@ -16,7 +16,15 @@ _client = None
 def _get_client() -> AsyncOpenAI:
     global _client
     if _client is None:
-        _client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+        if STT_PROVIDER == "groq":
+            _client = AsyncOpenAI(
+                api_key=GROQ_API_KEY,
+                base_url="https://api.groq.com/openai/v1",
+            )
+            print("  🎤 STT: Using Groq Whisper (fast)")
+        else:
+            _client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+            print("  🎤 STT: Using OpenAI Whisper")
     return _client
 
 
