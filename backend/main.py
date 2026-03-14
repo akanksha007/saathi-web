@@ -19,14 +19,19 @@ app = FastAPI(title="Saathi Web Sandbox")
 # Session manager
 sessions = SessionManager()
 
+# Resolve frontend path (works both locally and in Docker)
+import pathlib
+_backend_dir = pathlib.Path(__file__).parent
+_frontend_dir = _backend_dir.parent / "frontend"
+
 # Serve frontend static files
-app.mount("/static", StaticFiles(directory="../frontend"), name="static")
+app.mount("/static", StaticFiles(directory=str(_frontend_dir)), name="static")
 
 
 @app.get("/")
 async def serve_index():
     """Serve the main HTML page."""
-    return FileResponse("../frontend/index.html")
+    return FileResponse(str(_frontend_dir / "index.html"))
 
 
 @app.websocket("/ws")
