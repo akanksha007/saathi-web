@@ -34,6 +34,8 @@ async def health_check():
     git_sha = os.environ.get("RAILWAY_GIT_COMMIT_SHA", "unknown")
     service_name = os.environ.get("RAILWAY_SERVICE_NAME", "unknown")
     deploy_id = os.environ.get("RAILWAY_DEPLOYMENT_ID", "unknown")
+    env_name = os.environ.get("RAILWAY_ENVIRONMENT_NAME", "unknown")
+    env_id = os.environ.get("RAILWAY_ENVIRONMENT_ID", "unknown")
 
     # List ALL env var names (not values) to see what Railway injects
     all_env_names = sorted(os.environ.keys())
@@ -43,6 +45,8 @@ async def health_check():
         "deploy_id": deploy_id[:12],
         "git_sha": git_sha[:8],
         "service_name": service_name,
+        "environment": env_name,
+        "environment_id": env_id[:12],
         "config_key_set": bool(config_key),
         "raw_env_key_set": bool(raw_env),
         "raw_env_preview": f"{raw_env[:8]}..." if raw_env else None,

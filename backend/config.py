@@ -24,8 +24,8 @@ WHISPER_MODEL = "whisper-1"
 WHISPER_LANGUAGE = "hi"
 
 # LLM
-LLM_MODEL = "gpt-4o"
-LLM_MAX_TOKENS = 500
+LLM_MODEL = "gpt-4o-mini"  # Faster first-token latency than gpt-4o
+LLM_MAX_TOKENS = 300  # Shorter responses for conversation
 LLM_TEMPERATURE = 0.8
 MAX_CONVERSATION_HISTORY = 30  # 15 turns (user + assistant)
 

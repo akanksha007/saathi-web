@@ -16,14 +16,27 @@ from session import Session
 
 
 SENTENCE_ENDINGS = ("।", "!", "?", "।\n")
+# Comma and other natural pause points for early chunking
+CLAUSE_BREAKS = (",", "—", ":", ";", "।", "!", "?", "\n")
+# Max chars before forcing a flush (even without punctuation)
+MAX_BUFFER_CHARS = 60
 
 
-def is_sentence_complete(buffer: str) -> bool:
-    """Check if the buffer contains a complete Hindi sentence."""
+def is_chunk_ready(buffer: str) -> bool:
+    """Check if the buffer is ready to be sent to TTS.
+    Uses clause breaks (commas, dashes) for faster chunking,
+    not just full sentence endings.
+    """
     stripped = buffer.strip()
     if not stripped:
         return False
-    return stripped[-1] in ("।", "!", "?")
+    # Flush on any clause break if we have enough text
+    if len(stripped) >= 15 and stripped[-1] in CLAUSE_BREAKS:
+        return True
+    # Force flush if buffer is getting too long
+    if len(stripped) >= MAX_BUFFER_CHARS:
+        return True
+    return False
 
 
 async def process_audio(websocket: WebSocket, audio_bytes: bytes, session: Session):
@@ -39,7 +52,9 @@ async def process_audio(websocket: WebSocket, audio_bytes: bytes, session: Sessi
 
     try:
         # Step 1: Speech-to-Text
+        print(f"  ⏱️ STT starting...")
         text, stt_latency = await transcribe(audio_bytes)
+        print(f"  ⏱️ STT done: {stt_latency:.2f}s")
 
         if not text:
             await websocket.send_json({
@@ -53,29 +68,36 @@ async def process_audio(websocket: WebSocket, audio_bytes: bytes, session: Sessi
 
         t1 = time.time()
 
-        # Step 2: Stream LLM response + chunk into sentences + TTS each
+        # Step 2: Stream LLM response + chunk into clauses + TTS each
         sentence_buffer = ""
         full_response = ""
         chunk_index = 0
         ttfa_logged = False
+        llm_first_token_time = None
 
         async for token in stream_response(text, session.history, session.persona_prompt):
+            if llm_first_token_time is None:
+                llm_first_token_time = time.time()
+                print(f"  ⏱️ LLM first token: {llm_first_token_time - t1:.2f}s after STT")
+
             sentence_buffer += token
             full_response += token
 
-            # Step 3: Check for sentence boundary
-            if is_sentence_complete(sentence_buffer):
+            # Step 3: Check for chunk boundary (clauses, not just sentences)
+            if is_chunk_ready(sentence_buffer):
                 sentence = sentence_buffer.strip()
                 sentence_buffer = ""
 
-                # Step 4: TTS for this sentence
+                # Step 4: TTS for this chunk
+                tts_start = time.time()
                 audio_data, tts_latency = await synthesize(sentence)
+                print(f"  ⏱️ TTS chunk {chunk_index}: {tts_latency:.2f}s for '{sentence[:30]}...'")
 
                 if audio_data:
                     # Log TTFA on first chunk
                     if not ttfa_logged:
                         ttfa = time.time() - t0
-                        print(f"  ⚡ TTFA: {ttfa:.2f}s")
+                        print(f"  ⚡ TTFA: {ttfa:.2f}s (STT:{stt_latency:.1f}s + LLM:{(llm_first_token_time - t1):.1f}s + TTS:{tts_latency:.1f}s)")
                         ttfa_logged = True
 
                     # Step 5: Send audio chunk to browser
