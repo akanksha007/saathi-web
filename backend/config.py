@@ -3,12 +3,19 @@ Saathi Web Sandbox — Configuration.
 """
 
 import os
+import sys
 from dotenv import load_dotenv
 
 load_dotenv()
 
 # API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+if not OPENAI_API_KEY:
+    print("⚠️  WARNING: OPENAI_API_KEY is not set! All STT/LLM/TTS calls will fail.")
+    print("   Set it via: export OPENAI_API_KEY=sk-...")
+    print("   Or add it to .env file in the backend directory.")
+    print("   On Railway: add it in the Variables tab.")
 
 # STT
 WHISPER_MODEL = "whisper-1"

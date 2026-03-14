@@ -159,6 +159,8 @@ vadInstance.onSpeechStart = () => {
     }
 };
 
+let processingTimeout = null;
+
 vadInstance.onSpeechEnd = (base64Audio) => {
     if (currentState !== State.LISTENING) return;
 
@@ -168,6 +170,17 @@ vadInstance.onSpeechEnd = (base64Audio) => {
 
     audioSendTimestamp = performance.now();
     ws.sendAudio(base64Audio);
+
+    // Safety timeout: if backend doesn't respond within 30s, reset to listening
+    if (processingTimeout) clearTimeout(processingTimeout);
+    processingTimeout = setTimeout(() => {
+        if (currentState === State.PROCESSING) {
+            console.error('⏰ Processing timeout — no response from server in 30s');
+            statusText.textContent = 'कोई जवाब नहीं आया। फिर से बोलो।';
+            setState(State.LISTENING);
+            vadInstance.start();
+        }
+    }, 30000);
 };
 
 // ==================
@@ -178,11 +191,10 @@ ws.onSessionStarted = (message) => {
     console.log('📋 Session:', message.persona);
 };
 
-ws.onSttResult = (message) => {
-    console.log('📝 You said:', message.text);
-};
-
 ws.onTtsAudio = (message) => {
+    // Clear processing timeout — we got a response
+    if (processingTimeout) { clearTimeout(processingTimeout); processingTimeout = null; }
+
     audioPlayer.enqueue(message.audio, message.index);
 
     if (message.index === 0 && audioSendTimestamp) {
@@ -192,12 +204,21 @@ ws.onTtsAudio = (message) => {
     }
 };
 
+ws.onSttResult = (message) => {
+    // Clear processing timeout — backend is working
+    if (processingTimeout) { clearTimeout(processingTimeout); processingTimeout = null; }
+    console.log('📝 You said:', message.text);
+};
+
 ws.onResponseComplete = (message) => {
+    if (processingTimeout) { clearTimeout(processingTimeout); processingTimeout = null; }
     console.log('📦 All chunks received');
 };
 
 ws.onError = (message) => {
-    console.error('Error:', message.message);
+    if (processingTimeout) { clearTimeout(processingTimeout); processingTimeout = null; }
+    console.error('⚠️ Server error:', message.message);
+    statusText.textContent = message.message || 'कुछ गड़बड़ हो गई। फिर से बोलो।';
     setState(State.LISTENING);
     vadInstance.start();
 };

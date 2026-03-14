@@ -19,6 +19,17 @@ app = FastAPI(title="Saathi Web Sandbox")
 # Session manager
 sessions = SessionManager()
 
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint — useful for debugging on Railway."""
+    from config import OPENAI_API_KEY
+    return {
+        "status": "ok",
+        "openai_key_set": bool(OPENAI_API_KEY),
+        "openai_key_preview": f"{OPENAI_API_KEY[:8]}..." if OPENAI_API_KEY else None,
+    }
+
 # Resolve frontend path (works both locally and in Docker)
 import pathlib
 _backend_dir = pathlib.Path(__file__).parent
@@ -88,7 +99,17 @@ async def websocket_endpoint(websocket: WebSocket):
                 print(f"\n  🎤 Audio received: {len(audio_bytes)} bytes")
 
                 # Process through streaming pipeline
-                await process_audio(websocket, audio_bytes, session)
+                try:
+                    await process_audio(websocket, audio_bytes, session)
+                except Exception as e:
+                    print(f"  ❌ Pipeline error: {e}")
+                    try:
+                        await websocket.send_json({
+                            "type": "error",
+                            "message": f"Processing failed: {str(e)}",
+                        })
+                    except Exception:
+                        pass
 
             elif msg_type == "switch_persona":
                 new_persona = message.get("persona", "empathy")
