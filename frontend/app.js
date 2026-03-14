@@ -78,18 +78,51 @@ function setState(newState) {
 }
 
 function showSelectScreen() {
-    selectScreen.classList.add('active');
-    conversationScreen.classList.remove('active');
+    // Fade out conversation screen, fade in select screen
+    conversationScreen.classList.add('fade-out');
     vadInstance.pause();
     audioPlayer.stop();
     orb.stop();
     currentState = State.SELECT;
+
+    setTimeout(() => {
+        conversationScreen.classList.remove('active', 'fade-out');
+        conversationScreen.style.display = '';
+
+        // Show select screen at opacity 0, then animate to 1
+        selectScreen.style.display = 'flex';
+        selectScreen.style.opacity = '0';
+        selectScreen.offsetHeight; // force reflow
+        selectScreen.classList.add('active');
+        selectScreen.style.opacity = '';
+
+        // Re-trigger card entry animations
+        personaCards.forEach(card => {
+            card.classList.remove('loading');
+            card.style.animation = 'none';
+            card.offsetHeight; // force reflow
+            card.style.animation = '';
+        });
+    }, 350);
 }
 
 function showConversationScreen() {
-    selectScreen.classList.remove('active');
-    conversationScreen.classList.add('active');
-    orb.start();
+    // Fade out select screen, fade in conversation screen
+    selectScreen.classList.add('fade-out');
+
+    setTimeout(() => {
+        selectScreen.classList.remove('active', 'fade-out');
+        selectScreen.style.display = '';
+
+        // Show conversation screen at opacity 0, then animate to 1
+        conversationScreen.style.display = 'flex';
+        conversationScreen.style.opacity = '0';
+        conversationScreen.offsetHeight; // force reflow
+        conversationScreen.classList.add('active');
+        conversationScreen.style.opacity = '';
+
+        orb.start();
+    }, 350);
 }
 
 // ==================
@@ -98,8 +131,15 @@ function showConversationScreen() {
 
 personaCards.forEach(card => {
     card.addEventListener('click', async () => {
+        // Prevent double-tap
+        if (card.classList.contains('loading')) return;
+
         const persona = card.dataset.persona;
         currentPersona = persona;
+
+        // Show loading state on the tapped card
+        personaCards.forEach(c => c.classList.remove('loading'));
+        card.classList.add('loading');
 
         // Update persona label
         personaLabel.textContent = PERSONA_LABELS[persona] || persona;
@@ -125,6 +165,9 @@ personaCards.forEach(card => {
         // Start session
         ws.startSession(persona);
 
+        // Small delay so user sees the loading state before transition
+        await new Promise(r => setTimeout(r, 300));
+
         // Show conversation screen
         showConversationScreen();
         setState(State.LISTENING);
@@ -137,6 +180,9 @@ personaCards.forEach(card => {
             console.error('VAD init error:', err);
             enableManualMode();
         }
+
+        // Clear loading state after transition
+        card.classList.remove('loading');
     });
 });
 

@@ -1,27 +1,50 @@
-/* Saathi Web Sandbox — Premium Voice AI UI */
+/* Saathi Web — Pastel Voice AI UI */
 
 :root {
-    --bg: #050505;
-    --text: #f5f5f5;
-    --text-dim: #888;
-    --text-muted: #555;
+    --bg: #FFF8F0;
+    --bg-secondary: #FEF3E8;
+    --text: #2D2D2D;
+    --text-dim: #6B6B6B;
+    --text-muted: #9E9E9E;
+    --card-bg: rgba(255, 255, 255, 0.72);
+    --card-border: rgba(0, 0, 0, 0.06);
+    --card-shadow: 0 2px 16px rgba(0, 0, 0, 0.06), 0 1px 4px rgba(0, 0, 0, 0.04);
+    --card-shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.10), 0 2px 8px rgba(0, 0, 0, 0.06);
 
-    --empathy: #22c55e;
-    --empathy-dark: #15803d;
-    --funny: #f59e0b;
-    --funny-dark: #b45309;
-    --angry: #ef4444;
-    --angry-dark: #b91c1c;
-    --happy: #a855f7;
-    --happy-dark: #7e22ce;
-    --loving: #ec4899;
-    --loving-dark: #be185d;
+    /* Persona pastel palettes */
+    --empathy: #4CAF50;
+    --empathy-light: #E8F5E9;
+    --empathy-mid: #A5D6A7;
+    --empathy-gradient: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+
+    --funny: #FF9800;
+    --funny-light: #FFF8E1;
+    --funny-mid: #FFE082;
+    --funny-gradient: linear-gradient(135deg, #FFF8E1 0%, #FFECB3 100%);
+
+    --angry: #EF5350;
+    --angry-light: #FFEBEE;
+    --angry-mid: #EF9A9A;
+    --angry-gradient: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);
+
+    --happy: #AB47BC;
+    --happy-light: #F3E5F5;
+    --happy-mid: #CE93D8;
+    --happy-gradient: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%);
+
+    --loving: #EC407A;
+    --loving-light: #FCE4EC;
+    --loving-mid: #F48FB1;
+    --loving-gradient: linear-gradient(135deg, #FCE4EC 0%, #F8BBD0 100%);
+
+    /* Conversation screen (stays dark for orb contrast) */
+    --conv-bg: #0A0A0A;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-    font-family: 'Noto Sans Devanagari', -apple-system, sans-serif;
+    font-family: 'Noto Sans Devanagari', -apple-system, 'Segoe UI', sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100dvh;
@@ -40,151 +63,257 @@ body {
     height: 100dvh;
     position: fixed;
     top: 0; left: 0;
+    opacity: 0;
+    transition: opacity 0.4s ease;
 }
 
 .screen.active {
     display: flex;
     align-items: center;
     justify-content: center;
+    opacity: 1;
+}
+
+.screen.fade-out {
+    opacity: 0;
 }
 
 /* ============================== */
 /* Screen 1: Persona Selection    */
 /* ============================== */
 
+#select-screen {
+    background: linear-gradient(165deg, #FFF8F0 0%, #FEF0E4 40%, #FBE9F1 100%);
+}
+
 .select-container {
     width: 100%;
-    max-width: 440px;
+    max-width: 480px;
     padding: 32px 20px;
     overflow-y: auto;
     max-height: 100dvh;
+    -webkit-overflow-scrolling: touch;
 }
+
+/* Header */
 
 .select-header {
     text-align: center;
-    margin-bottom: 36px;
+    margin-bottom: 32px;
+    animation: fadeSlideDown 0.6s ease both;
 }
 
 .brand {
-    font-size: 2.6rem;
+    font-size: 3rem;
     font-weight: 700;
     letter-spacing: -0.02em;
-    background: linear-gradient(135deg, #f5f5f5 0%, #888 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--text);
+    position: relative;
+    display: inline-block;
+}
+
+.brand::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 3px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--empathy), var(--happy), var(--loving));
 }
 
 .tagline {
-    font-size: 0.95rem;
+    font-size: 1rem;
+    color: var(--text-dim);
+    margin-top: 14px;
+    font-weight: 400;
+}
+
+.instruction {
+    font-size: 0.85rem;
     color: var(--text-muted);
     margin-top: 6px;
     font-weight: 300;
+    animation: fadeSlideDown 0.6s 0.15s ease both;
 }
 
-/* Persona Cards */
+/* Persona Cards — Grid */
 
 .persona-cards {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+/* Fifth card spans full width centered */
+.persona-card:last-child {
+    grid-column: 1 / -1;
+    max-width: calc(50% - 7px);
+    justify-self: center;
 }
 
 .persona-card {
     position: relative;
-    display: block;
-    width: 100%;
-    padding: 20px;
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 20px;
-    background: rgba(255,255,255,0.03);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 24px 16px 20px;
+    border: 1px solid var(--card-border);
+    border-radius: 24px;
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     color: var(--text);
     font-family: inherit;
     cursor: pointer;
     overflow: hidden;
-    transition: transform 0.15s ease, border-color 0.3s ease;
-    text-align: left;
+    transition: transform 0.2s ease, box-shadow 0.3s ease, border-color 0.3s ease;
     outline: none;
+    box-shadow: var(--card-shadow);
+
+    /* Staggered entry animation */
+    opacity: 0;
+    animation: cardEntry 0.5s ease both;
+}
+
+.persona-card:nth-child(1) { animation-delay: 0.15s; }
+.persona-card:nth-child(2) { animation-delay: 0.25s; }
+.persona-card:nth-child(3) { animation-delay: 0.35s; }
+.persona-card:nth-child(4) { animation-delay: 0.45s; }
+.persona-card:nth-child(5) { animation-delay: 0.55s; }
+
+.persona-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--card-shadow-hover);
 }
 
 .persona-card:active {
-    transform: scale(0.97);
+    transform: scale(0.96);
+    box-shadow: var(--card-shadow);
 }
 
-.card-glow {
-    position: absolute;
-    top: -50%;
-    right: -30%;
-    width: 200px;
-    height: 200px;
-    border-radius: 50%;
-    opacity: 0;
-    filter: blur(60px);
-    transition: opacity 0.4s ease;
+/* Card selected/loading state */
+.persona-card.loading {
     pointer-events: none;
+    border-color: transparent;
 }
+.persona-card.loading .card-info { opacity: 0.5; }
+.persona-card.loading .card-loading { display: flex; }
+.persona-card.loading .card-avatar { opacity: 0.6; }
 
-.persona-card:hover .card-glow,
-.persona-card:active .card-glow {
-    opacity: 1;
-}
-
-.persona-card.empathy .card-glow { background: var(--empathy); }
-.persona-card.funny .card-glow { background: var(--funny); }
-.persona-card.angry .card-glow { background: var(--angry); }
-.persona-card.happy .card-glow { background: var(--happy); }
-.persona-card.loving .card-glow { background: var(--loving); }
-
+/* Per-persona hover border glow */
 .persona-card.empathy:hover,
-.persona-card.empathy:active { border-color: rgba(34,197,94,0.3); }
+.persona-card.empathy.loading { border-color: var(--empathy-mid); }
 .persona-card.funny:hover,
-.persona-card.funny:active { border-color: rgba(245,158,11,0.3); }
+.persona-card.funny.loading { border-color: var(--funny-mid); }
 .persona-card.angry:hover,
-.persona-card.angry:active { border-color: rgba(239,68,68,0.3); }
+.persona-card.angry.loading { border-color: var(--angry-mid); }
 .persona-card.happy:hover,
-.persona-card.happy:active { border-color: rgba(168,85,247,0.3); }
+.persona-card.happy.loading { border-color: var(--happy-mid); }
 .persona-card.loving:hover,
-.persona-card.loving:active { border-color: rgba(236,72,153,0.3); }
+.persona-card.loving.loading { border-color: var(--loving-mid); }
 
-.card-content {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    gap: 16px;
+/* Avatar */
+
+.card-avatar {
+    margin-bottom: 14px;
+    transition: opacity 0.3s ease;
 }
 
-.card-icon {
-    font-size: 2.2rem;
-    width: 56px;
-    height: 56px;
+.avatar-circle {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 16px;
-    flex-shrink: 0;
-    background: rgba(255,255,255,0.04);
+    position: relative;
+    transition: transform 0.3s ease;
 }
+
+.persona-card:hover .avatar-circle {
+    transform: scale(1.08);
+}
+
+.avatar-letter {
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: white;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    position: relative;
+    z-index: 1;
+}
+
+/* Avatar per-persona gradients */
+.empathy-avatar {
+    background: linear-gradient(135deg, #66BB6A, #43A047);
+    box-shadow: 0 4px 16px rgba(76, 175, 80, 0.35);
+}
+.funny-avatar {
+    background: linear-gradient(135deg, #FFB74D, #FB8C00);
+    box-shadow: 0 4px 16px rgba(255, 152, 0, 0.35);
+}
+.angry-avatar {
+    background: linear-gradient(135deg, #EF5350, #E53935);
+    box-shadow: 0 4px 16px rgba(239, 83, 80, 0.35);
+}
+.happy-avatar {
+    background: linear-gradient(135deg, #BA68C8, #8E24AA);
+    box-shadow: 0 4px 16px rgba(171, 71, 188, 0.35);
+}
+.loving-avatar {
+    background: linear-gradient(135deg, #F06292, #D81B60);
+    box-shadow: 0 4px 16px rgba(236, 64, 122, 0.35);
+}
+
+/* Card Info */
 
 .card-info {
     flex: 1;
     min-width: 0;
+    transition: opacity 0.3s ease;
 }
 
 .card-name {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 600;
     margin-bottom: 4px;
+    color: var(--text);
 }
 
 .card-quote {
-    font-size: 0.85rem;
-    color: var(--text-dim);
+    font-size: 0.78rem;
+    color: var(--text-muted);
     font-weight: 300;
     font-style: italic;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    line-height: 1.4;
+}
+
+/* Card Loading Spinner */
+
+.card-loading {
+    display: none;
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border-radius: 24px;
+    z-index: 10;
+}
+
+.spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid rgba(0,0,0,0.1);
+    border-top-color: var(--text-dim);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
 }
 
 /* ============================== */
@@ -193,7 +322,7 @@ body {
 
 #conversation-screen {
     flex-direction: column;
-    background: var(--bg);
+    background: var(--conv-bg);
 }
 
 .conv-header {
@@ -209,29 +338,34 @@ body {
 }
 
 .back-btn {
-    width: 40px;
-    height: 40px;
+    width: 42px;
+    height: 42px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    color: var(--text-dim);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    color: #aaa;
     font-size: 1.2rem;
     font-family: inherit;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: #ddd;
 }
 
 .back-btn:active {
     transform: scale(0.92);
-    background: rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.18);
 }
 
 .persona-label {
     font-size: 0.9rem;
-    color: var(--text-muted);
+    color: #777;
     font-weight: 400;
 }
 
@@ -273,21 +407,6 @@ body {
     animation: ambient-pulse 1s ease-in-out infinite alternate;
 }
 
-@keyframes ambient-breathe {
-    0%, 100% { opacity: 0.08; transform: scale(1); }
-    50% { opacity: 0.15; transform: scale(1.05); }
-}
-
-@keyframes ambient-swirl {
-    0%, 100% { opacity: 0.1; transform: scale(1) rotate(0deg); }
-    50% { opacity: 0.18; transform: scale(1.1) rotate(3deg); }
-}
-
-@keyframes ambient-pulse {
-    0% { opacity: 0.1; transform: scale(1); }
-    100% { opacity: 0.2; transform: scale(1.08); }
-}
-
 /* Orb Container */
 
 .orb-container {
@@ -311,7 +430,7 @@ body {
     position: relative;
     z-index: 1;
     font-size: 1.05rem;
-    color: var(--text-dim);
+    color: #888;
     text-align: center;
     margin-top: 32px;
     font-weight: 400;
@@ -320,24 +439,102 @@ body {
 }
 
 /* ==================== */
+/* Animations           */
+/* ==================== */
+
+@keyframes fadeSlideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes cardEntry {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes ambient-breathe {
+    0%, 100% { opacity: 0.08; transform: scale(1); }
+    50% { opacity: 0.15; transform: scale(1.05); }
+}
+
+@keyframes ambient-swirl {
+    0%, 100% { opacity: 0.1; transform: scale(1) rotate(0deg); }
+    50% { opacity: 0.18; transform: scale(1.1) rotate(3deg); }
+}
+
+@keyframes ambient-pulse {
+    0% { opacity: 0.1; transform: scale(1); }
+    100% { opacity: 0.2; transform: scale(1.08); }
+}
+
+/* ==================== */
 /* Responsive           */
 /* ==================== */
 
+/* Larger screens — bigger cards, bigger avatars */
 @media (min-width: 768px) {
-    .brand { font-size: 3.2rem; }
-    .select-container { max-width: 500px; }
-    .persona-card { padding: 24px; }
-    .card-icon { font-size: 2.6rem; width: 64px; height: 64px; }
-    .card-name { font-size: 1.2rem; }
+    .brand { font-size: 3.6rem; }
+    .select-container { max-width: 580px; padding: 40px 28px; }
+    .persona-cards { gap: 18px; }
+    .persona-card { padding: 28px 20px 24px; border-radius: 28px; }
+    .avatar-circle { width: 88px; height: 88px; }
+    .avatar-letter { font-size: 2rem; }
+    .card-name { font-size: 1.15rem; }
+    .card-quote { font-size: 0.85rem; }
     .orb-container { width: 340px; height: 340px; }
     .status { font-size: 1.2rem; }
 }
 
+/* Very large screens — 3 column grid */
+@media (min-width: 1024px) {
+    .select-container { max-width: 720px; }
+    .persona-cards {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .persona-card:last-child {
+        grid-column: auto;
+        max-width: none;
+        justify-self: auto;
+    }
+}
+
+/* Short screens — compact layout */
 @media (max-height: 680px) {
-    .select-header { margin-bottom: 20px; }
-    .brand { font-size: 2rem; }
-    .persona-card { padding: 14px 18px; }
-    .card-icon { font-size: 1.8rem; width: 44px; height: 44px; }
-    .persona-cards { gap: 8px; }
+    .select-header { margin-bottom: 18px; }
+    .brand { font-size: 2.2rem; }
+    .brand::after { width: 30px; height: 2px; }
+    .tagline { margin-top: 10px; font-size: 0.9rem; }
+    .instruction { font-size: 0.78rem; }
+    .persona-card { padding: 16px 12px 14px; border-radius: 20px; }
+    .avatar-circle { width: 56px; height: 56px; }
+    .avatar-letter { font-size: 1.3rem; }
+    .card-avatar { margin-bottom: 10px; }
+    .card-name { font-size: 0.95rem; }
+    .card-quote { font-size: 0.72rem; }
+    .persona-cards { gap: 10px; }
     .orb-container { width: 220px; height: 220px; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
 }

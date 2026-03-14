@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#050505">
+    <meta name="theme-color" content="#FFF8F0">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>Saathi — साथी</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,61 +19,82 @@
             <div class="select-header">
                 <h1 class="brand">साथी</h1>
                 <p class="tagline">आपका अपना, बस आपके लिए</p>
+                <p class="instruction">अपना दोस्त चुनो और बात शुरू करो 🎤</p>
             </div>
 
             <div class="persona-cards">
                 <button class="persona-card empathy" data-persona="empathy">
-                    <div class="card-glow"></div>
-                    <div class="card-content">
-                        <div class="card-icon">🤝</div>
-                        <div class="card-info">
-                            <div class="card-name">हमदर्द दोस्त</div>
-                            <div class="card-quote">"बताओ, क्या चल रहा है दिल में?"</div>
+                    <div class="card-avatar">
+                        <div class="avatar-circle empathy-avatar">
+                            <span class="avatar-letter">ह</span>
                         </div>
+                    </div>
+                    <div class="card-info">
+                        <div class="card-name">हमदर्द दोस्त</div>
+                        <div class="card-quote">"बताओ, क्या चल रहा है दिल में?"</div>
+                    </div>
+                    <div class="card-loading">
+                        <div class="spinner"></div>
                     </div>
                 </button>
 
                 <button class="persona-card funny" data-persona="funny">
-                    <div class="card-glow"></div>
-                    <div class="card-content">
-                        <div class="card-icon">🎭</div>
-                        <div class="card-info">
-                            <div class="card-name">कॉमेडियन यार</div>
-                            <div class="card-quote">"चल भाई, हँसा देता हूँ तुझे!"</div>
+                    <div class="card-avatar">
+                        <div class="avatar-circle funny-avatar">
+                            <span class="avatar-letter">क</span>
                         </div>
+                    </div>
+                    <div class="card-info">
+                        <div class="card-name">कॉमेडियन यार</div>
+                        <div class="card-quote">"चल भाई, हँसा देता हूँ तुझे!"</div>
+                    </div>
+                    <div class="card-loading">
+                        <div class="spinner"></div>
                     </div>
                 </button>
 
                 <button class="persona-card angry" data-persona="angry">
-                    <div class="card-glow"></div>
-                    <div class="card-content">
-                        <div class="card-icon">👴</div>
-                        <div class="card-info">
-                            <div class="card-name">Uncle जी</div>
-                            <div class="card-quote">"हमारे ज़माने में ऐसा नहीं होता था!"</div>
+                    <div class="card-avatar">
+                        <div class="avatar-circle angry-avatar">
+                            <span class="avatar-letter">अ</span>
                         </div>
+                    </div>
+                    <div class="card-info">
+                        <div class="card-name">Uncle जी</div>
+                        <div class="card-quote">"हमारे ज़माने में ऐसा नहीं होता था!"</div>
+                    </div>
+                    <div class="card-loading">
+                        <div class="spinner"></div>
                     </div>
                 </button>
 
                 <button class="persona-card happy" data-persona="happy">
-                    <div class="card-glow"></div>
-                    <div class="card-content">
-                        <div class="card-icon">🌟</div>
-                        <div class="card-info">
-                            <div class="card-name">चीयरलीडर</div>
-                            <div class="card-quote">"वाह! तुम तो कमाल हो बिलकुल!"</div>
+                    <div class="card-avatar">
+                        <div class="avatar-circle happy-avatar">
+                            <span class="avatar-letter">च</span>
                         </div>
+                    </div>
+                    <div class="card-info">
+                        <div class="card-name">चीयरलीडर</div>
+                        <div class="card-quote">"वाह! तुम तो कमाल हो बिलकुल!"</div>
+                    </div>
+                    <div class="card-loading">
+                        <div class="spinner"></div>
                     </div>
                 </button>
 
                 <button class="persona-card loving" data-persona="loving">
-                    <div class="card-glow"></div>
-                    <div class="card-content">
-                        <div class="card-icon">🪷</div>
-                        <div class="card-info">
-                            <div class="card-name">प्यारे दादाजी</div>
-                            <div class="card-quote">"बेटा, सब ठीक हो जाएगा।"</div>
+                    <div class="card-avatar">
+                        <div class="avatar-circle loving-avatar">
+                            <span class="avatar-letter">द</span>
                         </div>
+                    </div>
+                    <div class="card-info">
+                        <div class="card-name">प्यारे दादाजी</div>
+                        <div class="card-quote">"बेटा, सब ठीक हो जाएगा।"</div>
+                    </div>
+                    <div class="card-loading">
+                        <div class="spinner"></div>
                     </div>
                 </button>
             </div>
@@ -83,7 +104,9 @@
     <!-- Screen 2: Conversation -->
     <div id="conversation-screen" class="screen">
         <div class="conv-header">
-            <button id="change-persona-btn" class="back-btn">←</button>
+            <button id="change-persona-btn" class="back-btn" aria-label="Change persona">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+            </button>
             <span id="persona-label" class="persona-label"></span>
         </div>
 
