@@ -24,24 +24,29 @@ sessions = SessionManager()
 async def health_check():
     """Health check endpoint — useful for debugging on Railway."""
     import os
-    from config import OPENAI_API_KEY
-
-    # Check raw env var directly (bypassing config.py)
+    # Re-read env var fresh at request time (not cached from startup)
     raw_env = os.environ.get("OPENAI_API_KEY")
 
-    # List all env var names that contain "OPENAI" or "KEY" (for debugging mismatches)
-    matching_vars = {k: v[:8] + "..." for k, v in os.environ.items()
-                     if "OPENAI" in k.upper() or "API_KEY" in k.upper()}
+    # Also check config module
+    from config import OPENAI_API_KEY as config_key
+
+    # Railway metadata to verify which deployment we're on
+    git_sha = os.environ.get("RAILWAY_GIT_COMMIT_SHA", "unknown")
+    service_name = os.environ.get("RAILWAY_SERVICE_NAME", "unknown")
+    deploy_id = os.environ.get("RAILWAY_DEPLOYMENT_ID", "unknown")
 
     # List ALL env var names (not values) to see what Railway injects
     all_env_names = sorted(os.environ.keys())
 
     return {
         "status": "ok",
-        "config_key_set": bool(OPENAI_API_KEY),
+        "deploy_id": deploy_id[:12],
+        "git_sha": git_sha[:8],
+        "service_name": service_name,
+        "config_key_set": bool(config_key),
         "raw_env_key_set": bool(raw_env),
         "raw_env_preview": f"{raw_env[:8]}..." if raw_env else None,
-        "matching_env_vars": matching_vars,
+        "total_env_vars": len(all_env_names),
         "all_env_var_names": all_env_names,
     }
 
