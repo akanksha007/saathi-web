@@ -1,8 +1,2 @@
-[phases.setup]
-nixPkgs = ["python310"]
-
-[phases.install]
-cmds = ["pip install -r backend/requirements.txt"]
-
 [start]
-cmd = "cd backend && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"
+cmd = "cd backend && python3 -m uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"
