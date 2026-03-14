@@ -23,11 +23,22 @@ sessions = SessionManager()
 @app.get("/health")
 async def health_check():
     """Health check endpoint — useful for debugging on Railway."""
+    import os
     from config import OPENAI_API_KEY
+
+    # Check raw env var directly (bypassing config.py)
+    raw_env = os.environ.get("OPENAI_API_KEY")
+
+    # List all env var names that contain "OPENAI" or "KEY" (for debugging mismatches)
+    matching_vars = {k: v[:8] + "..." for k, v in os.environ.items()
+                     if "OPENAI" in k.upper() or "API_KEY" in k.upper()}
+
     return {
         "status": "ok",
-        "openai_key_set": bool(OPENAI_API_KEY),
-        "openai_key_preview": f"{OPENAI_API_KEY[:8]}..." if OPENAI_API_KEY else None,
+        "config_key_set": bool(OPENAI_API_KEY),
+        "raw_env_key_set": bool(raw_env),
+        "raw_env_preview": f"{raw_env[:8]}..." if raw_env else None,
+        "matching_env_vars": matching_vars,
     }
 
 # Resolve frontend path (works both locally and in Docker)
