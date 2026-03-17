@@ -8,7 +8,7 @@ import time
 import tempfile
 from openai import AsyncOpenAI
 
-from config import OPENAI_API_KEY, GROQ_API_KEY, STT_PROVIDER, WHISPER_MODEL, WHISPER_LANGUAGE, TEMP_DIR
+from config import OPENAI_API_KEY, GROQ_API_KEY, STT_PROVIDER, WHISPER_MODEL, WHISPER_LANGUAGE, WHISPER_PROMPT, TEMP_DIR
 
 _client = None
 
@@ -55,11 +55,15 @@ async def transcribe(audio_bytes: bytes) -> tuple[str | None, float]:
 
         # Call Whisper API
         with open(temp_path, "rb") as audio_file:
-            response = await _get_client().audio.transcriptions.create(
-                model=WHISPER_MODEL,
-                file=audio_file,
-                language=WHISPER_LANGUAGE,
-            )
+            # Build API params — only include language if explicitly set
+            api_params = {
+                "model": WHISPER_MODEL,
+                "file": audio_file,
+                "prompt": WHISPER_PROMPT,
+            }
+            if WHISPER_LANGUAGE:
+                api_params["language"] = WHISPER_LANGUAGE
+            response = await _get_client().audio.transcriptions.create(**api_params)
 
         latency = time.time() - start_time
         text = response.text.strip()

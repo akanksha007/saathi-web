@@ -38,11 +38,11 @@ class SaathiVAD {
                     }
                 },
 
-                // Model settings
-                positiveSpeechThreshold: 0.8,
-                negativeSpeechThreshold: 0.4,
-                minSpeechFrames: 5,
-                redemptionFrames: 20,
+                // Model settings — tuned for Hindi/Hinglish conversational speech
+                positiveSpeechThreshold: 0.6,   // Lower threshold to catch softer speech (was 0.8)
+                negativeSpeechThreshold: 0.35,   // Slightly lower to avoid premature cutoff (was 0.4)
+                minSpeechFrames: 8,              // More frames required to avoid false triggers (was 5)
+                redemptionFrames: 35,            // More patience during pauses within a sentence (was 20)
             });
 
             console.log('✅ VAD initialized');

@@ -16,25 +16,37 @@ from session import Session
 
 
 SENTENCE_ENDINGS = ("।", "!", "?", "।\n")
-# Comma and other natural pause points for early chunking
+# Clause breaks — only used for chunking when buffer is long enough
 CLAUSE_BREAKS = (",", "—", ":", ";", "।", "!", "?", "\n")
+# Min chars before allowing a clause-break flush (increased from 15 for more natural speech)
+MIN_CLAUSE_CHARS = 40
+# Min chars before allowing a sentence-ending flush
+MIN_SENTENCE_CHARS = 20
 # Max chars before forcing a flush (even without punctuation)
-MAX_BUFFER_CHARS = 60
+MAX_BUFFER_CHARS = 120
 
 
 def is_chunk_ready(buffer: str) -> bool:
     """Check if the buffer is ready to be sent to TTS.
-    Uses clause breaks (commas, dashes) for faster chunking,
-    not just full sentence endings.
+    Prioritizes sentence endings for natural speech boundaries.
+    Only splits on clause breaks (commas, etc.) when buffer is long enough
+    to avoid unnaturally short fragments.
     """
     stripped = buffer.strip()
     if not stripped:
         return False
-    # Flush on any clause break if we have enough text
-    if len(stripped) >= 15 and stripped[-1] in CLAUSE_BREAKS:
+    # Always flush on sentence endings if we have a reasonable amount of text
+    if len(stripped) >= MIN_SENTENCE_CHARS and stripped[-1] in SENTENCE_ENDINGS:
         return True
-    # Force flush if buffer is getting too long
+    # Flush on clause breaks only if buffer is getting long
+    if len(stripped) >= MIN_CLAUSE_CHARS and stripped[-1] in CLAUSE_BREAKS:
+        return True
+    # Force flush if buffer is getting too long (but avoid mid-word splits)
     if len(stripped) >= MAX_BUFFER_CHARS:
+        # Try to find the last space to avoid mid-word break
+        last_space = stripped.rfind(" ", MIN_CLAUSE_CHARS)
+        if last_space > 0:
+            return True
         return True
     return False
 
@@ -88,9 +100,9 @@ async def process_audio(websocket: WebSocket, audio_bytes: bytes, session: Sessi
                 sentence = sentence_buffer.strip()
                 sentence_buffer = ""
 
-                # Step 4: TTS for this chunk
+                # Step 4: TTS for this chunk (with persona-specific voice)
                 tts_start = time.time()
-                audio_data, tts_latency = await synthesize(sentence)
+                audio_data, tts_latency = await synthesize(sentence, session.persona)
                 print(f"  ⏱️ TTS chunk {chunk_index}: {tts_latency:.2f}s for '{sentence[:30]}...'")
 
                 if audio_data:
@@ -112,7 +124,7 @@ async def process_audio(websocket: WebSocket, audio_bytes: bytes, session: Sessi
         # Flush remaining buffer (incomplete sentence at end)
         if sentence_buffer.strip():
             sentence = sentence_buffer.strip()
-            audio_data, tts_latency = await synthesize(sentence)
+            audio_data, tts_latency = await synthesize(sentence, session.persona)
 
             if audio_data:
                 if not ttfa_logged:
