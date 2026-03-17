@@ -25,8 +25,6 @@ CLAUSE_BREAKS = (",", "—", ":", ";", "।", "!", "?", "\n")
 MIN_CLAUSE_CHARS = 40
 # Min chars before allowing a sentence-ending flush
 MIN_SENTENCE_CHARS = 20
-# Min chars for the FIRST chunk — lower to reduce time-to-first-audio
-MIN_FIRST_CHUNK_CHARS = 10
 # Max chars before forcing a flush (even without punctuation)
 MAX_BUFFER_CHARS = 120
 
@@ -44,33 +42,25 @@ BACKCHANNEL_FILLERS = {
 DEFAULT_FILLERS = ["हम्म", "अच्छा"]
 
 
-def is_chunk_ready(buffer: str, is_first_chunk: bool = False) -> bool:
+def is_chunk_ready(buffer: str) -> bool:
     """Check if the buffer is ready to be sent to TTS.
     Prioritizes sentence endings for natural speech boundaries.
     Only splits on clause breaks (commas, etc.) when buffer is long enough
     to avoid unnaturally short fragments.
-
-    For the first chunk, uses a lower threshold (MIN_FIRST_CHUNK_CHARS) to
-    reduce time-to-first-audio latency.
     """
     stripped = buffer.strip()
     if not stripped:
         return False
-
-    # Use lower threshold for first chunk to minimize TTFA
-    min_sentence = MIN_FIRST_CHUNK_CHARS if is_first_chunk else MIN_SENTENCE_CHARS
-    min_clause = MIN_FIRST_CHUNK_CHARS if is_first_chunk else MIN_CLAUSE_CHARS
-
     # Always flush on sentence endings if we have a reasonable amount of text
-    if len(stripped) >= min_sentence and stripped[-1] in SENTENCE_ENDINGS:
+    if len(stripped) >= MIN_SENTENCE_CHARS and stripped[-1] in SENTENCE_ENDINGS:
         return True
     # Flush on clause breaks only if buffer is getting long
-    if len(stripped) >= min_clause and stripped[-1] in CLAUSE_BREAKS:
+    if len(stripped) >= MIN_CLAUSE_CHARS and stripped[-1] in CLAUSE_BREAKS:
         return True
     # Force flush if buffer is getting too long (but avoid mid-word splits)
     if len(stripped) >= MAX_BUFFER_CHARS:
         # Try to find the last space to avoid mid-word break
-        last_space = stripped.rfind(" ", min_clause)
+        last_space = stripped.rfind(" ", MIN_CLAUSE_CHARS)
         if last_space > 0:
             return True
         return True
@@ -262,9 +252,8 @@ async def process_audio(websocket: WebSocket, audio_bytes: bytes, session: Sessi
             sentence_buffer += token
             full_response += token
 
-            # Step 4: Check for chunk boundary (use lower threshold for first chunk)
-            is_first = (chunk_index == 0)
-            if is_chunk_ready(sentence_buffer, is_first_chunk=is_first):
+            # Step 4: Check for chunk boundary
+            if is_chunk_ready(sentence_buffer):
                 sentence = sentence_buffer.strip()
                 sentence_buffer = ""
 
