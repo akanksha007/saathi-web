@@ -135,6 +135,16 @@ async def websocket_endpoint(websocket: WebSocket):
                     except Exception:
                         pass
 
+            elif msg_type == "interrupt":
+                # User started speaking while AI was talking — interrupt the pipeline
+                session = sessions.get(ws_id)
+                if session:
+                    session.interrupted = True
+                    print(f"  ⛔ User interrupted AI speech")
+                    await websocket.send_json({
+                        "type": "interrupted",
+                    })
+
             elif msg_type == "switch_persona":
                 new_persona = message.get("persona", "empathy")
                 session = sessions.get(ws_id)

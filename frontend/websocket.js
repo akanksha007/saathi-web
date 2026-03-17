@@ -15,6 +15,10 @@ class SaathiWebSocket {
         this.onSessionStarted = null;
         this.onSttResult = null;
         this.onTtsAudio = null;
+        this.onTtsAudioStream = null;
+        this.onTtsChunkDone = null;
+        this.onBackchannelAudio = null;
+        this.onInterrupted = null;
         this.onResponseComplete = null;
         this.onError = null;
         this.onConnectionChange = null;
@@ -90,10 +94,29 @@ class SaathiWebSocket {
                 if (this.onSttResult) this.onSttResult(message);
                 break;
             case 'tts_audio':
+                // Legacy MP3 chunk (fallback)
                 if (this.onTtsAudio) this.onTtsAudio(message);
                 break;
+            case 'tts_audio_stream':
+                // Streaming PCM audio sub-chunk
+                if (this.onTtsAudioStream) this.onTtsAudioStream(message);
+                break;
+            case 'tts_chunk_done':
+                // A text chunk's TTS streaming is complete
+                if (this.onTtsChunkDone) this.onTtsChunkDone(message);
+                break;
+            case 'backchannel_audio':
+                // Short filler audio ("hmm", "achha") while thinking
+                console.log('💬 Backchannel:', message.text);
+                if (this.onBackchannelAudio) this.onBackchannelAudio(message);
+                break;
+            case 'interrupted':
+                // Server acknowledged interruption
+                console.log('⛔ Interruption acknowledged');
+                if (this.onInterrupted) this.onInterrupted(message);
+                break;
             case 'response_complete':
-                console.log(`✅ Response complete: ${message.chunks} chunks, ${message.total_time?.toFixed(2)}s`);
+                console.log(`✅ Response complete: ${message.chunks} chunks, ${message.total_time?.toFixed(2)}s${message.interrupted ? ' (interrupted)' : ''}`);
                 if (this.onResponseComplete) this.onResponseComplete(message);
                 break;
             case 'error':
@@ -153,6 +176,13 @@ class SaathiWebSocket {
      */
     switchPersona(persona) {
         this.send('switch_persona', { persona });
+    }
+
+    /**
+     * Send interrupt signal — user started speaking while AI was talking.
+     */
+    interrupt() {
+        this.send('interrupt');
     }
 
     /**

@@ -18,6 +18,7 @@ class Session:
         self.history: list[dict] = []
         self.turn_count = 0
         self.created_at = datetime.now()
+        self.interrupted = False  # Set to True when user interrupts AI speech
 
     def add_turn(self, user_text: str, assistant_text: str):
         """Add a conversation turn to history."""
@@ -35,6 +36,7 @@ class Session:
         self.persona_prompt = PERSONA_PROMPTS.get(new_persona, PERSONA_PROMPTS["empathy"])
         self.history = []
         self.turn_count = 0
+        self.interrupted = False
 
     @property
     def duration_seconds(self) -> float:

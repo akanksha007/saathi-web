@@ -1,6 +1,7 @@
 /**
  * Saathi Web Sandbox — Main Application.
  * Manages state, wires all modules together.
+ * Supports: gapless audio, streaming TTS, interruption, backchannel.
  */
 
 // ==================
@@ -202,12 +203,17 @@ changePersonaBtn.addEventListener('click', () => {
 vadInstance.onSpeechStart = () => {
     if (currentState === State.LISTENING) {
         orb.setAudioLevel(0.5);
+    } else if (currentState === State.SPEAKING) {
+        // User started speaking while AI is talking — INTERRUPT!
+        console.log('⛔ User interrupting AI speech');
+        _handleInterrupt();
     }
 };
 
 let processingTimeout = null;
 
 vadInstance.onSpeechEnd = (base64Audio) => {
+    // Allow speech end from both LISTENING and SPEAKING states (for interruption)
     if (currentState !== State.LISTENING) return;
 
     vadInstance.pause();
@@ -230,6 +236,32 @@ vadInstance.onSpeechEnd = (base64Audio) => {
 };
 
 // ==================
+// Interruption Handler
+// ==================
+
+function _handleInterrupt() {
+    // 1. Stop audio playback immediately
+    const wasPlaying = audioPlayer.stop();
+
+    if (wasPlaying) {
+        // 2. Tell server to stop generating
+        ws.interrupt();
+
+        // 3. Clear any pending timeouts
+        if (processingTimeout) {
+            clearTimeout(processingTimeout);
+            processingTimeout = null;
+        }
+
+        // 4. Switch to listening state so the new speech gets captured
+        setState(State.LISTENING);
+        orb.setAudioLevel(0.5); // Show user speech is being detected
+
+        console.log('⛔ Interrupted — now listening for user speech');
+    }
+}
+
+// ==================
 // WebSocket Callbacks
 // ==================
 
@@ -237,6 +269,27 @@ ws.onSessionStarted = (message) => {
     console.log('📋 Session:', message.persona);
 };
 
+// --- Streaming PCM TTS audio ---
+ws.onTtsAudioStream = (message) => {
+    // Clear processing timeout — we got audio
+    if (processingTimeout) { clearTimeout(processingTimeout); processingTimeout = null; }
+
+    // Schedule PCM chunk for gapless playback
+    audioPlayer.enqueuePcm(message.audio, message.chunk_index);
+
+    // Log TTFA on first sub-chunk of first chunk
+    if (message.chunk_index === 0 && message.sub_index === 0 && audioSendTimestamp) {
+        const ttfa = performance.now() - audioSendTimestamp;
+        console.log(`⚡ TTFA (streaming): ${(ttfa / 1000).toFixed(2)}s`);
+        audioSendTimestamp = null;
+    }
+};
+
+ws.onTtsChunkDone = (message) => {
+    console.log(`📦 Text chunk ${message.chunk_index} complete (${message.sub_chunks} sub-chunks)`);
+};
+
+// --- Legacy MP3 fallback ---
 ws.onTtsAudio = (message) => {
     // Clear processing timeout — we got a response
     if (processingTimeout) { clearTimeout(processingTimeout); processingTimeout = null; }
@@ -250,6 +303,13 @@ ws.onTtsAudio = (message) => {
     }
 };
 
+// --- Backchannel audio (short fillers while thinking) ---
+ws.onBackchannelAudio = (message) => {
+    // Play the backchannel filler sound immediately via a separate path
+    // Use the main audioPlayer — it will play before the main response chunks arrive
+    audioPlayer.enqueue(message.audio, -1); // index -1 = backchannel, won't trigger onPlaybackStart
+};
+
 ws.onSttResult = (message) => {
     // Clear processing timeout — backend is working
     if (processingTimeout) { clearTimeout(processingTimeout); processingTimeout = null; }
@@ -258,7 +318,21 @@ ws.onSttResult = (message) => {
 
 ws.onResponseComplete = (message) => {
     if (processingTimeout) { clearTimeout(processingTimeout); processingTimeout = null; }
-    console.log('📦 All chunks received');
+    console.log('📦 All chunks received' + (message.interrupted ? ' (interrupted)' : ''));
+
+    // Tell audioPlayer that no more chunks are coming
+    audioPlayer.markResponseComplete();
+
+    // If interrupted, the audioPlayer is already stopped and we're in LISTENING state
+    if (message.interrupted) {
+        // Already handled by _handleInterrupt
+        return;
+    }
+};
+
+ws.onInterrupted = (message) => {
+    // Server acknowledged the interruption — nothing extra to do
+    // Frontend already stopped playback in _handleInterrupt
 };
 
 ws.onError = (message) => {
@@ -283,12 +357,20 @@ audioPlayer.onPlaybackStart = () => {
     setState(State.SPEAKING);
     // Simulate audio level for orb during playback
     _simulateSpeakingAnimation();
+
+    // Keep VAD active during speaking for interruption support!
+    // Don't pause VAD — we need it to detect when user starts speaking
+    vadInstance.start();
 };
 
 audioPlayer.onPlaybackComplete = () => {
     orb.setAudioLevel(0);
-    setState(State.LISTENING);
-    vadInstance.start();
+    // Only transition to listening if we're still in speaking state
+    // (might already be in listening due to interruption)
+    if (currentState === State.SPEAKING) {
+        setState(State.LISTENING);
+        vadInstance.start();
+    }
 };
 
 let speakingAnimInterval = null;
