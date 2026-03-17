@@ -12,9 +12,18 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from session import SessionManager
-from streaming import process_audio
+from streaming import process_audio, warm_backchannel_cache
 
 app = FastAPI(title="Saathi Web Sandbox")
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Pre-warm backchannel audio cache on startup to avoid TTS latency for fillers."""
+    try:
+        await warm_backchannel_cache()
+    except Exception as e:
+        print(f"  ⚠️ Backchannel cache warming failed (non-fatal): {e}")
 
 # Session manager
 sessions = SessionManager()

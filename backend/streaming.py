@@ -25,8 +25,13 @@ CLAUSE_BREAKS = (",", "—", ":", ";", "।", "!", "?", "\n")
 MIN_CLAUSE_CHARS = 40
 # Min chars before allowing a sentence-ending flush
 MIN_SENTENCE_CHARS = 20
+# Min chars for the FIRST chunk — lower to reduce time-to-first-audio
+MIN_FIRST_CHUNK_CHARS = 10
 # Max chars before forcing a flush (even without punctuation)
 MAX_BUFFER_CHARS = 120
+
+# Backchannel delay — only play filler if LLM takes longer than this (seconds)
+BACKCHANNEL_DELAY = 1.5
 
 # Backchannel filler phrases per persona — short sounds played while "thinking"
 BACKCHANNEL_FILLERS = {
@@ -39,25 +44,33 @@ BACKCHANNEL_FILLERS = {
 DEFAULT_FILLERS = ["हम्म", "अच्छा"]
 
 
-def is_chunk_ready(buffer: str) -> bool:
+def is_chunk_ready(buffer: str, is_first_chunk: bool = False) -> bool:
     """Check if the buffer is ready to be sent to TTS.
     Prioritizes sentence endings for natural speech boundaries.
     Only splits on clause breaks (commas, etc.) when buffer is long enough
     to avoid unnaturally short fragments.
+
+    For the first chunk, uses a lower threshold (MIN_FIRST_CHUNK_CHARS) to
+    reduce time-to-first-audio latency.
     """
     stripped = buffer.strip()
     if not stripped:
         return False
+
+    # Use lower threshold for first chunk to minimize TTFA
+    min_sentence = MIN_FIRST_CHUNK_CHARS if is_first_chunk else MIN_SENTENCE_CHARS
+    min_clause = MIN_FIRST_CHUNK_CHARS if is_first_chunk else MIN_CLAUSE_CHARS
+
     # Always flush on sentence endings if we have a reasonable amount of text
-    if len(stripped) >= MIN_SENTENCE_CHARS and stripped[-1] in SENTENCE_ENDINGS:
+    if len(stripped) >= min_sentence and stripped[-1] in SENTENCE_ENDINGS:
         return True
     # Flush on clause breaks only if buffer is getting long
-    if len(stripped) >= MIN_CLAUSE_CHARS and stripped[-1] in CLAUSE_BREAKS:
+    if len(stripped) >= min_clause and stripped[-1] in CLAUSE_BREAKS:
         return True
     # Force flush if buffer is getting too long (but avoid mid-word splits)
     if len(stripped) >= MAX_BUFFER_CHARS:
         # Try to find the last space to avoid mid-word break
-        last_space = stripped.rfind(" ", MIN_CLAUSE_CHARS)
+        last_space = stripped.rfind(" ", min_clause)
         if last_space > 0:
             return True
         return True
@@ -68,12 +81,34 @@ async def send_backchannel(websocket: WebSocket, session: Session):
     """
     Send a short backchannel filler audio (e.g., "हम्म") while waiting for LLM.
     This makes the AI feel more present and human during the thinking phase.
+
+    Waits BACKCHANNEL_DELAY seconds before sending — if the task is cancelled
+    before the delay (because LLM responded quickly), no filler is played.
+    This prevents every response from starting with "हम्म".
     """
+    try:
+        # Wait before sending — gives LLM a chance to respond first
+        await asyncio.sleep(BACKCHANNEL_DELAY)
+    except asyncio.CancelledError:
+        # LLM responded quickly — no need for filler
+        print(f"  💬 Backchannel skipped (LLM responded fast)")
+        return
+
     fillers = BACKCHANNEL_FILLERS.get(session.persona, DEFAULT_FILLERS)
     filler_text = random.choice(fillers)
 
     try:
-        audio_data, latency = await synthesize(filler_text, session.persona)
+        # Check if we have a cached filler audio
+        cache_key = f"{session.persona}:{filler_text}"
+        if cache_key in _backchannel_cache:
+            audio_data = _backchannel_cache[cache_key]
+            latency = 0.0
+        else:
+            audio_data, latency = await synthesize(filler_text, session.persona)
+            # Cache for future use
+            if audio_data:
+                _backchannel_cache[cache_key] = audio_data
+
         if audio_data:
             audio_b64 = base64.b64encode(audio_data).decode("utf-8")
             await websocket.send_json({
@@ -81,9 +116,42 @@ async def send_backchannel(websocket: WebSocket, session: Session):
                 "audio": audio_b64,
                 "text": filler_text,
             })
-            print(f"  💬 Backchannel: \"{filler_text}\" ({latency:.2f}s)")
+            print(f"  💬 Backchannel: \"{filler_text}\" ({latency:.2f}s{', cached' if latency == 0.0 else ''})")
+    except asyncio.CancelledError:
+        # Cancelled during TTS synthesis — that's fine
+        print(f"  💬 Backchannel cancelled during synthesis")
     except Exception as e:
         print(f"  ⚠️ Backchannel error (non-fatal): {e}")
+
+
+# Cache for pre-synthesized backchannel filler audio
+_backchannel_cache: dict[str, bytes] = {}
+
+
+async def warm_backchannel_cache():
+    """
+    Pre-synthesize all backchannel filler audio at startup.
+    Called once to populate the cache so fillers never need a TTS API call.
+    """
+    print("  🔊 Warming backchannel audio cache...")
+    all_fillers = set()
+    for persona, fillers in BACKCHANNEL_FILLERS.items():
+        for filler_text in fillers:
+            all_fillers.add((persona, filler_text))
+    for filler_text in DEFAULT_FILLERS:
+        all_fillers.add((None, filler_text))
+
+    for persona, filler_text in all_fillers:
+        cache_key = f"{persona}:{filler_text}"
+        if cache_key not in _backchannel_cache:
+            try:
+                audio_data, _ = await synthesize(filler_text, persona)
+                if audio_data:
+                    _backchannel_cache[cache_key] = audio_data
+            except Exception as e:
+                print(f"  ⚠️ Failed to cache filler '{filler_text}' for {persona}: {e}")
+
+    print(f"  ✅ Backchannel cache warmed: {len(_backchannel_cache)} fillers cached")
 
 
 async def _stream_tts_chunk(websocket: WebSocket, text: str, session: Session, chunk_index: int) -> int:
@@ -164,6 +232,7 @@ async def process_audio(websocket: WebSocket, audio_bytes: bytes, session: Sessi
 
         # Step 2: Send backchannel filler while LLM processes
         # Run backchannel and LLM start concurrently
+        # Backchannel now has a built-in delay — it will only play if LLM is slow
         backchannel_task = asyncio.create_task(send_backchannel(websocket, session))
 
         t1 = time.time()
@@ -185,16 +254,17 @@ async def process_audio(websocket: WebSocket, audio_bytes: bytes, session: Sessi
                 llm_first_token_time = time.time()
                 print(f"  ⏱️ LLM first token: {llm_first_token_time - t1:.2f}s after STT")
 
-                # Cancel backchannel if LLM responded quickly
+                # Cancel backchannel if LLM responded quickly — prevents "हम्म" on every turn
                 if not backchannel_task.done():
-                    # Let backchannel finish — it's short enough
-                    pass
+                    backchannel_task.cancel()
+                    print(f"  💬 Backchannel cancelled (LLM responded in {llm_first_token_time - t1:.2f}s)")
 
             sentence_buffer += token
             full_response += token
 
-            # Step 4: Check for chunk boundary
-            if is_chunk_ready(sentence_buffer):
+            # Step 4: Check for chunk boundary (use lower threshold for first chunk)
+            is_first = (chunk_index == 0)
+            if is_chunk_ready(sentence_buffer, is_first_chunk=is_first):
                 sentence = sentence_buffer.strip()
                 sentence_buffer = ""
 
@@ -226,9 +296,13 @@ async def process_audio(websocket: WebSocket, audio_bytes: bytes, session: Sessi
 
             chunk_index = await _stream_tts_chunk(websocket, sentence, session, chunk_index)
 
-        # Ensure backchannel task is done
+        # Ensure backchannel task is done (suppress CancelledError if we cancelled it)
         if not backchannel_task.done():
-            await backchannel_task
+            backchannel_task.cancel()
+            try:
+                await backchannel_task
+            except asyncio.CancelledError:
+                pass
 
         # Signal response complete
         total_time = time.time() - t0

@@ -4,6 +4,7 @@ Converts Hindi/Hinglish audio to text using Groq Whisper (fast) or OpenAI Whispe
 """
 
 import os
+import io
 import time
 import tempfile
 from openai import AsyncOpenAI
@@ -46,24 +47,21 @@ async def transcribe(audio_bytes: bytes) -> tuple[str | None, float]:
     ext = "wav"
     if audio_bytes[:4] != b"RIFF":
         ext = "webm"
-    temp_path = os.path.join(TEMP_DIR, f"stt_{int(time.time() * 1000)}.{ext}")
 
     try:
-        # Write audio bytes to temp file
-        with open(temp_path, "wb") as f:
-            f.write(audio_bytes)
+        # Use in-memory BytesIO buffer instead of temp file for lower latency
+        audio_file = io.BytesIO(audio_bytes)
+        audio_file.name = f"audio.{ext}"  # OpenAI API needs a filename with extension
 
-        # Call Whisper API
-        with open(temp_path, "rb") as audio_file:
-            # Build API params — only include language if explicitly set
-            api_params = {
-                "model": WHISPER_MODEL,
-                "file": audio_file,
-                "prompt": WHISPER_PROMPT,
-            }
-            if WHISPER_LANGUAGE:
-                api_params["language"] = WHISPER_LANGUAGE
-            response = await _get_client().audio.transcriptions.create(**api_params)
+        # Build API params — only include language if explicitly set
+        api_params = {
+            "model": WHISPER_MODEL,
+            "file": audio_file,
+            "prompt": WHISPER_PROMPT,
+        }
+        if WHISPER_LANGUAGE:
+            api_params["language"] = WHISPER_LANGUAGE
+        response = await _get_client().audio.transcriptions.create(**api_params)
 
         latency = time.time() - start_time
         text = response.text.strip()
@@ -78,8 +76,3 @@ async def transcribe(audio_bytes: bytes) -> tuple[str | None, float]:
         latency = time.time() - start_time
         print(f"  ❌ STT Error: {e}")
         return None, latency
-
-    finally:
-        # Clean up temp file
-        if os.path.exists(temp_path):
-            os.remove(temp_path)

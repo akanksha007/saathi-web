@@ -40,7 +40,7 @@ WHISPER_PROMPT = (
 
 # LLM
 LLM_MODEL = "gpt-4o-mini"  # Faster first-token latency than gpt-4o
-LLM_MAX_TOKENS = 100  # Very short responses for voice conversation
+LLM_MAX_TOKENS = 300  # Allow longer responses for storytelling while keeping voice-friendly
 LLM_TEMPERATURE = 0.8
 MAX_CONVERSATION_HISTORY = 30  # 15 turns (user + assistant)
 
