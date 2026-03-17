@@ -1,0 +1,19 @@
+{
+    "name": "Saathi — Your Hindi AI Voice Friend",
+    "short_name": "Saathi",
+    "description": "बोलो हिंदी में, सुनो हिंदी में। Talk to your AI best friend in Hindi.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#FFF8F0",
+    "theme_color": "#FFF8F0",
+    "orientation": "portrait",
+    "lang": "hi",
+    "icons": [
+        {
+            "src": "/static/favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        }
+    ]
+}

@@ -238,6 +238,7 @@ async def process_audio(websocket: WebSocket, audio_bytes: bytes, session: Sessi
             "total_time": total_time,
             "chunks": chunk_index,
             "interrupted": session.interrupted,
+            "full_text": full_response,
         })
 
         # Update session history (even if interrupted, save partial response)

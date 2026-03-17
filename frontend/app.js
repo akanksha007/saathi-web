@@ -1,7 +1,8 @@
 /**
  * Saathi Web Sandbox — Main Application.
  * Manages state, wires all modules together.
- * Supports: gapless audio, streaming TTS, interruption, backchannel.
+ * Supports: gapless audio, streaming TTS, interruption, backchannel,
+ *           mic permission interstitial, live transcript, persona avatar.
  */
 
 // ==================
@@ -10,6 +11,7 @@
 
 const State = {
     SELECT: 'select',
+    MIC_PERMISSION: 'mic_permission',
     LISTENING: 'listening',
     PROCESSING: 'processing',
     SPEAKING: 'speaking',
@@ -21,6 +23,22 @@ const PERSONA_LABELS = {
     angry: 'Uncle जी',
     happy: 'चीयरलीडर',
     loving: 'प्यारे दादाजी',
+};
+
+const PERSONA_AVATAR_LETTERS = {
+    empathy: 'ह',
+    funny: 'क',
+    angry: 'अ',
+    happy: 'च',
+    loving: 'द',
+};
+
+const PERSONA_AVATAR_COLORS = {
+    empathy: 'linear-gradient(135deg, #66BB6A, #43A047)',
+    funny: 'linear-gradient(135deg, #FFB74D, #FB8C00)',
+    angry: 'linear-gradient(135deg, #EF5350, #E53935)',
+    happy: 'linear-gradient(135deg, #BA68C8, #8E24AA)',
+    loving: 'linear-gradient(135deg, #F06292, #D81B60)',
 };
 
 let currentState = State.SELECT;
@@ -41,12 +59,54 @@ const orb = new LivingOrb('orb-canvas');
 // ==================
 
 const selectScreen = document.getElementById('select-screen');
+const micPermissionScreen = document.getElementById('mic-permission-screen');
 const conversationScreen = document.getElementById('conversation-screen');
 const ambientBg = document.getElementById('ambient-bg');
 const statusText = document.getElementById('status-text');
 const personaLabel = document.getElementById('persona-label');
+const convPersonaAvatar = document.getElementById('conv-persona-avatar');
 const changePersonaBtn = document.getElementById('change-persona-btn');
 const personaCards = document.querySelectorAll('.persona-card');
+const allowMicBtn = document.getElementById('allow-mic-btn');
+const micNote = document.querySelector('.mic-note');
+const transcriptContent = document.getElementById('transcript-content');
+const transcriptArea = document.getElementById('transcript-area');
+
+// ==================
+// Transcript Manager
+// ==================
+
+let thinkingBubble = null;
+
+function addTranscriptBubble(text, role) {
+    // role: 'user' | 'assistant' | 'thinking'
+    const bubble = document.createElement('div');
+    bubble.className = `transcript-bubble ${role}`;
+    bubble.textContent = text;
+    transcriptContent.appendChild(bubble);
+
+    // Auto-scroll to bottom
+    transcriptArea.scrollTop = transcriptArea.scrollHeight;
+
+    // Keep max 20 bubbles to avoid memory issues
+    while (transcriptContent.children.length > 20) {
+        transcriptContent.removeChild(transcriptContent.firstChild);
+    }
+
+    return bubble;
+}
+
+function removeThinkingBubble() {
+    if (thinkingBubble && thinkingBubble.parentNode) {
+        thinkingBubble.parentNode.removeChild(thinkingBubble);
+        thinkingBubble = null;
+    }
+}
+
+function clearTranscript() {
+    transcriptContent.innerHTML = '';
+    thinkingBubble = null;
+}
 
 // ==================
 // State Transitions
@@ -78,24 +138,49 @@ function setState(newState) {
     }
 }
 
+// ==================
+// Screen Transitions
+// ==================
+
+function _fadeOutScreen(screen) {
+    return new Promise(resolve => {
+        screen.classList.add('fade-out');
+        setTimeout(() => {
+            screen.classList.remove('active', 'fade-out');
+            screen.style.display = '';
+            resolve();
+        }, 350);
+    });
+}
+
+function _fadeInScreen(screen, displayStyle) {
+    screen.style.display = displayStyle || 'flex';
+    screen.style.opacity = '0';
+    screen.offsetHeight; // force reflow
+    screen.classList.add('active');
+    screen.style.opacity = '';
+}
+
 function showSelectScreen() {
     // Fade out conversation screen, fade in select screen
     conversationScreen.classList.add('fade-out');
+    micPermissionScreen.classList.remove('active');
+    micPermissionScreen.style.display = '';
     vadInstance.pause();
     audioPlayer.stop();
     orb.stop();
     currentState = State.SELECT;
 
+    // Reset mic button state for next time
+    allowMicBtn.textContent = '🎤 माइक Allow करें';
+    allowMicBtn.classList.remove('denied');
+    micNote.textContent = 'Allow पर tap करें, फिर browser permission दें';
+
     setTimeout(() => {
         conversationScreen.classList.remove('active', 'fade-out');
         conversationScreen.style.display = '';
 
-        // Show select screen at opacity 0, then animate to 1
-        selectScreen.style.display = 'flex';
-        selectScreen.style.opacity = '0';
-        selectScreen.offsetHeight; // force reflow
-        selectScreen.classList.add('active');
-        selectScreen.style.opacity = '';
+        _fadeInScreen(selectScreen, 'flex');
 
         // Re-trigger card entry animations
         personaCards.forEach(card => {
@@ -107,20 +192,25 @@ function showSelectScreen() {
     }, 350);
 }
 
+async function showMicPermissionScreen() {
+    await _fadeOutScreen(selectScreen);
+    _fadeInScreen(micPermissionScreen, 'flex');
+    currentState = State.MIC_PERMISSION;
+}
+
 function showConversationScreen() {
-    // Fade out select screen, fade in conversation screen
-    selectScreen.classList.add('fade-out');
+    // Can come from either select screen or mic permission screen
+    const activeScreen = micPermissionScreen.classList.contains('active')
+        ? micPermissionScreen
+        : selectScreen;
+
+    activeScreen.classList.add('fade-out');
 
     setTimeout(() => {
-        selectScreen.classList.remove('active', 'fade-out');
-        selectScreen.style.display = '';
+        activeScreen.classList.remove('active', 'fade-out');
+        activeScreen.style.display = '';
 
-        // Show conversation screen at opacity 0, then animate to 1
-        conversationScreen.style.display = 'flex';
-        conversationScreen.style.opacity = '0';
-        conversationScreen.offsetHeight; // force reflow
-        conversationScreen.classList.add('active');
-        conversationScreen.style.opacity = '';
+        _fadeInScreen(conversationScreen, 'flex');
 
         orb.start();
     }, 350);
@@ -142,8 +232,10 @@ personaCards.forEach(card => {
         personaCards.forEach(c => c.classList.remove('loading'));
         card.classList.add('loading');
 
-        // Update persona label
+        // Update persona label and avatar in conversation header
         personaLabel.textContent = PERSONA_LABELS[persona] || persona;
+        convPersonaAvatar.textContent = PERSONA_AVATAR_LETTERS[persona] || '?';
+        convPersonaAvatar.style.background = PERSONA_AVATAR_COLORS[persona] || PERSONA_AVATAR_COLORS.empathy;
 
         // Set orb color for this persona
         orb.setPersonaColor(persona);
@@ -166,20 +258,35 @@ personaCards.forEach(card => {
         // Start session
         ws.startSession(persona);
 
+        // Clear transcript from any previous session
+        clearTranscript();
+
         // Small delay so user sees the loading state before transition
         await new Promise(r => setTimeout(r, 300));
 
-        // Show conversation screen
-        showConversationScreen();
-        setState(State.LISTENING);
-
-        // Initialize VAD
+        // Check if we already have mic permission
+        let micGranted = false;
         try {
-            await vadInstance.initialize();
-            await vadInstance.start();
-        } catch (err) {
-            console.error('VAD init error:', err);
-            enableManualMode();
+            const permStatus = await navigator.permissions.query({ name: 'microphone' });
+            micGranted = (permStatus.state === 'granted');
+        } catch (e) {
+            // permissions.query not supported — we'll need to ask
+        }
+
+        if (micGranted) {
+            // Already have permission — go straight to conversation
+            showConversationScreen();
+            setState(State.LISTENING);
+            try {
+                await vadInstance.initialize();
+                await vadInstance.start();
+            } catch (err) {
+                console.error('VAD init error:', err);
+                enableManualMode();
+            }
+        } else {
+            // Show mic permission interstitial
+            await showMicPermissionScreen();
         }
 
         // Clear loading state after transition
@@ -188,11 +295,35 @@ personaCards.forEach(card => {
 });
 
 // ==================
+// Mic Permission Screen
+// ==================
+
+allowMicBtn.addEventListener('click', async () => {
+    allowMicBtn.textContent = '⏳ Loading...';
+
+    try {
+        await vadInstance.initialize();
+        await vadInstance.start();
+
+        // Success — transition to conversation
+        showConversationScreen();
+        setState(State.LISTENING);
+    } catch (err) {
+        console.error('Mic permission error:', err);
+        // Permission denied — show helpful message
+        allowMicBtn.textContent = '❌ Permission denied';
+        allowMicBtn.classList.add('denied');
+        micNote.textContent = 'Browser settings में जाकर mic allow करें, फिर page refresh करें।';
+    }
+});
+
+// ==================
 // Change Persona
 // ==================
 
 changePersonaBtn.addEventListener('click', () => {
     ws.switchPersona(currentPersona);
+    clearTranscript();
     showSelectScreen();
 });
 
@@ -220,6 +351,10 @@ vadInstance.onSpeechEnd = (base64Audio) => {
     orb.setAudioLevel(0);
     setState(State.PROCESSING);
 
+    // Show thinking indicator in transcript
+    removeThinkingBubble();
+    thinkingBubble = addTranscriptBubble('सोच रहा हूँ...', 'thinking');
+
     audioSendTimestamp = performance.now();
     ws.sendAudio(base64Audio);
 
@@ -228,6 +363,8 @@ vadInstance.onSpeechEnd = (base64Audio) => {
     processingTimeout = setTimeout(() => {
         if (currentState === State.PROCESSING) {
             console.error('⏰ Processing timeout — no response from server in 30s');
+            removeThinkingBubble();
+            addTranscriptBubble('कोई जवाब नहीं आया। फिर से बोलो।', 'thinking');
             statusText.textContent = 'कोई जवाब नहीं आया। फिर से बोलो।';
             setState(State.LISTENING);
             vadInstance.start();
@@ -274,6 +411,11 @@ ws.onTtsAudioStream = (message) => {
     // Clear processing timeout — we got audio
     if (processingTimeout) { clearTimeout(processingTimeout); processingTimeout = null; }
 
+    // Remove thinking bubble on first audio
+    if (message.chunk_index === 0 && message.sub_index === 0) {
+        removeThinkingBubble();
+    }
+
     // Schedule PCM chunk for gapless playback
     audioPlayer.enqueuePcm(message.audio, message.chunk_index);
 
@@ -293,6 +435,11 @@ ws.onTtsChunkDone = (message) => {
 ws.onTtsAudio = (message) => {
     // Clear processing timeout — we got a response
     if (processingTimeout) { clearTimeout(processingTimeout); processingTimeout = null; }
+
+    // Remove thinking bubble on first audio
+    if (message.index === 0) {
+        removeThinkingBubble();
+    }
 
     audioPlayer.enqueue(message.audio, message.index);
 
@@ -314,11 +461,22 @@ ws.onSttResult = (message) => {
     // Clear processing timeout — backend is working
     if (processingTimeout) { clearTimeout(processingTimeout); processingTimeout = null; }
     console.log('📝 You said:', message.text);
+
+    // Show what user said in transcript
+    addTranscriptBubble(message.text, 'user');
 };
 
 ws.onResponseComplete = (message) => {
     if (processingTimeout) { clearTimeout(processingTimeout); processingTimeout = null; }
     console.log('📦 All chunks received' + (message.interrupted ? ' (interrupted)' : ''));
+
+    // Remove any lingering thinking bubble
+    removeThinkingBubble();
+
+    // Show AI's full response in transcript
+    if (message.full_text && message.full_text.trim()) {
+        addTranscriptBubble(message.full_text, 'assistant');
+    }
 
     // Tell audioPlayer that no more chunks are coming
     audioPlayer.markResponseComplete();
@@ -338,13 +496,14 @@ ws.onInterrupted = (message) => {
 ws.onError = (message) => {
     if (processingTimeout) { clearTimeout(processingTimeout); processingTimeout = null; }
     console.error('⚠️ Server error:', message.message);
+    removeThinkingBubble();
     statusText.textContent = message.message || 'कुछ गड़बड़ हो गई। फिर से बोलो।';
     setState(State.LISTENING);
     vadInstance.start();
 };
 
 ws.onConnectionChange = (connected) => {
-    if (!connected && currentState !== State.SELECT) {
+    if (!connected && currentState !== State.SELECT && currentState !== State.MIC_PERMISSION) {
         statusText.textContent = 'कनेक्ट हो रहा है...';
     }
 };
@@ -431,6 +590,7 @@ function enableManualMode() {
                     const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
 
                     setState(State.PROCESSING);
+                    thinkingBubble = addTranscriptBubble('सोच रहा हूँ...', 'thinking');
                     audioSendTimestamp = performance.now();
                     ws.sendAudio(base64);
                     stream.getTracks().forEach(t => t.stop());

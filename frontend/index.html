@@ -6,7 +6,33 @@
     <meta name="theme-color" content="#FFF8F0">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <title>Saathi — साथी</title>
+    <meta http-equiv="content-language" content="hi, en">
+
+    <title>Saathi — Your Hindi AI Voice Friend | साथी</title>
+    <meta name="description" content="Talk to your AI best friend in Hindi. बोलो हिंदी में, सुनो हिंदी में। No typing, just talk.">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="apple-touch-icon" href="/static/favicon.svg">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Open Graph — for WhatsApp, Telegram, iMessage -->
+    <meta property="og:title" content="Saathi — Your Hindi AI Voice Friend 🇮🇳">
+    <meta property="og:description" content="बोलो हिंदी में, सुनो हिंदी में। Talk to an AI friend who speaks Hindi — no typing needed. Try it free!">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="/static/og-image.svg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Saathi — Your Hindi AI Voice Friend 🇮🇳">
+    <meta name="twitter:description" content="Talk to an AI friend who speaks Hindi. No typing, just talk. 🎤">
+    <meta name="twitter:image" content="/static/og-image.svg">
+
+    <!-- Fonts & CSS -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -18,9 +44,34 @@
         <div class="select-container">
             <div class="select-header">
                 <h1 class="brand">साथी</h1>
-                <p class="tagline">आपका अपना, बस आपके लिए</p>
-                <p class="instruction">अपना दोस्त चुनो और बात शुरू करो 🎤</p>
+                <p class="tagline">Your AI best friend who speaks Hindi 🇮🇳</p>
             </div>
+
+            <!-- Hero Explainer Section -->
+            <div class="hero-explainer">
+                <div class="hero-what">
+                    <p class="hero-line">बोलो हिंदी में। सुनो हिंदी में। बस बात करो।</p>
+                    <p class="hero-sub">Saathi is a voice AI you can talk to — just like calling a friend. No typing needed.</p>
+                </div>
+                <div class="how-it-works">
+                    <div class="step">
+                        <span class="step-icon">👇</span>
+                        <span class="step-text">Pick a friend below</span>
+                    </div>
+                    <div class="step-arrow">→</div>
+                    <div class="step">
+                        <span class="step-icon">🎤</span>
+                        <span class="step-text">Allow mic &amp; start talking</span>
+                    </div>
+                    <div class="step-arrow">→</div>
+                    <div class="step">
+                        <span class="step-icon">🗣️</span>
+                        <span class="step-text">They talk back in Hindi!</span>
+                    </div>
+                </div>
+            </div>
+
+            <p class="instruction">अपना दोस्त चुनो 👇</p>
 
             <div class="persona-cards">
                 <button class="persona-card empathy" data-persona="empathy">
@@ -31,7 +82,8 @@
                     </div>
                     <div class="card-info">
                         <div class="card-name">हमदर्द दोस्त</div>
-                        <div class="card-quote">"बताओ, क्या चल रहा है दिल में?"</div>
+                        <div class="card-desc">दिल की बात सुनेगा, समझेगा</div>
+                        <div class="card-quote">Your emotional support buddy</div>
                     </div>
                     <div class="card-loading">
                         <div class="spinner"></div>
@@ -46,7 +98,8 @@
                     </div>
                     <div class="card-info">
                         <div class="card-name">कॉमेडियन यार</div>
-                        <div class="card-quote">"चल भाई, हँसा देता हूँ तुझे!"</div>
+                        <div class="card-desc">हँसाएगा, jokes सुनाएगा</div>
+                        <div class="card-quote">Will make you laugh</div>
                     </div>
                     <div class="card-loading">
                         <div class="spinner"></div>
@@ -61,7 +114,8 @@
                     </div>
                     <div class="card-info">
                         <div class="card-name">Uncle जी</div>
-                        <div class="card-quote">"हमारे ज़माने में ऐसा नहीं होता था!"</div>
+                        <div class="card-desc">चिड़चिड़ा but प्यारा uncle</div>
+                        <div class="card-quote">Grumpy but lovable</div>
                     </div>
                     <div class="card-loading">
                         <div class="spinner"></div>
@@ -76,7 +130,8 @@
                     </div>
                     <div class="card-info">
                         <div class="card-name">चीयरलीडर</div>
-                        <div class="card-quote">"वाह! तुम तो कमाल हो बिलकुल!"</div>
+                        <div class="card-desc">हर बात पर hype करेगा</div>
+                        <div class="card-quote">Your biggest cheerleader</div>
                     </div>
                     <div class="card-loading">
                         <div class="spinner"></div>
@@ -91,7 +146,8 @@
                     </div>
                     <div class="card-info">
                         <div class="card-name">प्यारे दादाजी</div>
-                        <div class="card-quote">"बेटा, सब ठीक हो जाएगा।"</div>
+                        <div class="card-desc">प्यार से life advice देंगे</div>
+                        <div class="card-quote">Warm grandparent wisdom</div>
                     </div>
                     <div class="card-loading">
                         <div class="spinner"></div>
@@ -101,13 +157,32 @@
         </div>
     </div>
 
+    <!-- Screen 1.5: Mic Permission Request -->
+    <div id="mic-permission-screen" class="screen">
+        <div class="mic-permission-container">
+            <div class="mic-icon-large">🎤</div>
+            <h2 class="mic-title">माइक की ज़रूरत है</h2>
+            <p class="mic-subtitle">Saathi needs your microphone to hear you speak.</p>
+            <p class="mic-explain">आपकी आवाज़ सिर्फ बात करने के लिए use होती है।<br>कुछ save नहीं होता।</p>
+
+            <button id="allow-mic-btn" class="mic-allow-btn">
+                🎤 माइक Allow करें
+            </button>
+
+            <p class="mic-note">Allow पर tap करें, फिर browser permission दें</p>
+        </div>
+    </div>
+
     <!-- Screen 2: Conversation -->
     <div id="conversation-screen" class="screen">
         <div class="conv-header">
             <button id="change-persona-btn" class="back-btn" aria-label="Change persona">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
             </button>
-            <span id="persona-label" class="persona-label"></span>
+            <div class="conv-persona-info">
+                <div id="conv-persona-avatar" class="conv-avatar"></div>
+                <span id="persona-label" class="persona-label"></span>
+            </div>
         </div>
 
         <div class="conversation-container">
@@ -121,6 +196,13 @@
 
             <!-- Status -->
             <p id="status-text" class="status">सुन रहा हूँ...</p>
+
+            <!-- Live Transcript Area -->
+            <div id="transcript-area" class="transcript-area">
+                <div id="transcript-content" class="transcript-content">
+                    <!-- Transcript bubbles inserted by JS -->
+                </div>
+            </div>
         </div>
     </div>
 
