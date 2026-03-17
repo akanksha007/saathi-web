@@ -16,6 +16,7 @@ from stt import transcribe
 from llm import stream_response
 from tts import synthesize, synthesize_streaming
 from session import Session
+from crisis import detect_crisis, anonymize_trigger_text
 
 
 SENTENCE_ENDINGS = ("।", "!", "?", "।\n")
@@ -33,11 +34,8 @@ BACKCHANNEL_DELAY = 1.5
 
 # Backchannel filler phrases per persona — short sounds played while "thinking"
 BACKCHANNEL_FILLERS = {
-    "empathy": ["हम्म", "अच्छा"],
-    "funny": ["ओहो", "अरे"],
-    "angry": ["हम्म", "देखो"],
-    "happy": ["वाह", "अरे"],
-    "loving": ["हम्म", "बेटा"],
+    "saathi": ["हम्म", "अच्छा"],
+    "guided": ["हम्म", "सुनो"],
 }
 DEFAULT_FILLERS = ["हम्म", "अच्छा"]
 
@@ -215,6 +213,62 @@ async def process_audio(websocket: WebSocket, audio_bytes: bytes, session: Sessi
                 "type": "error",
                 "message": "आवाज़ समझ नहीं आई। फिर से बोलो।"
             })
+            return
+
+        # Step 1.5: Crisis Detection — check for suicide/self-harm keywords
+        crisis_result = detect_crisis(text)
+        if crisis_result.is_crisis:
+            print(f"  🚨 CRISIS DETECTED: severity={crisis_result.severity}, keywords={crisis_result.matched_keywords}")
+
+            # Send STT result first so user sees what they said
+            await websocket.send_json({"type": "stt_result", "text": text})
+
+            # Send crisis alert to frontend
+            await websocket.send_json({
+                "type": "crisis_detected",
+                "severity": crisis_result.severity,
+                "helplines": crisis_result.helplines,
+                "response_hindi": crisis_result.response_text_hindi,
+                "response_english": crisis_result.response_text_english,
+            })
+
+            # Generate compassionate voice response via TTS
+            crisis_audio, _ = await synthesize(crisis_result.response_text_hindi, session.persona)
+            if crisis_audio:
+                audio_b64 = base64.b64encode(crisis_audio).decode("utf-8")
+                await websocket.send_json({
+                    "type": "tts_audio",
+                    "audio": audio_b64,
+                    "index": 0,
+                })
+
+            # Log crisis event (if database is available)
+            try:
+                from database import db_available, save_crisis_event
+                if db_available() and hasattr(session, 'db_session_id') and session.db_session_id:
+                    await save_crisis_event(
+                        user_id=session.user_id_uuid,
+                        session_id=session.db_session_id,
+                        trigger_text=anonymize_trigger_text(text),
+                        severity=crisis_result.severity,
+                        helpline_shown=True,
+                    )
+            except Exception as e:
+                print(f"  ⚠️ Crisis event logging failed (non-fatal): {e}")
+
+            # Send response complete
+            await websocket.send_json({
+                "type": "response_complete",
+                "ttfa": time.time() - t0,
+                "total_time": time.time() - t0,
+                "chunks": 1,
+                "interrupted": False,
+                "full_text": crisis_result.response_text_hindi,
+                "crisis": True,
+            })
+
+            # Save to session history
+            session.add_turn(text, crisis_result.response_text_hindi)
             return
 
         # Step 2: Start LLM + backchannel immediately (before sending STT result)

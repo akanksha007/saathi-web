@@ -18,27 +18,18 @@ const State = {
 };
 
 const PERSONA_LABELS = {
-    empathy: 'हमदर्द दोस्त',
-    funny: 'कॉमेडियन यार',
-    angry: 'Uncle जी',
-    happy: 'चीयरलीडर',
-    loving: 'प्यारे दादाजी',
+    saathi: 'साथी',
+    guided: 'दीदी / भैया',
 };
 
 const PERSONA_AVATAR_LETTERS = {
-    empathy: 'ह',
-    funny: 'क',
-    angry: 'अ',
-    happy: 'च',
-    loving: 'द',
+    saathi: 'स',
+    guided: 'दी',
 };
 
 const PERSONA_AVATAR_COLORS = {
-    empathy: 'linear-gradient(135deg, #66BB6A, #43A047)',
-    funny: 'linear-gradient(135deg, #FFB74D, #FB8C00)',
-    angry: 'linear-gradient(135deg, #EF5350, #E53935)',
-    happy: 'linear-gradient(135deg, #BA68C8, #8E24AA)',
-    loving: 'linear-gradient(135deg, #F06292, #D81B60)',
+    saathi: 'linear-gradient(135deg, #66BB6A, #43A047)',
+    guided: 'linear-gradient(135deg, #7E57C2, #5E35B1)',
 };
 
 let currentState = State.SELECT;
@@ -58,6 +49,8 @@ const orb = new LivingOrb('orb-canvas');
 // DOM Elements
 // ==================
 
+const loginScreen = document.getElementById('login-screen');
+const onboardingScreen = document.getElementById('onboarding-screen');
 const selectScreen = document.getElementById('select-screen');
 const micPermissionScreen = document.getElementById('mic-permission-screen');
 const conversationScreen = document.getElementById('conversation-screen');
@@ -258,8 +251,8 @@ personaCards.forEach(card => {
             });
         }
 
-        // Start session
-        ws.startSession(persona);
+        // Start session (pass auth token if available)
+        ws.startSession(persona, auth.token);
 
         // Clear transcript from any previous session
         clearTranscript();
@@ -276,21 +269,27 @@ personaCards.forEach(card => {
             // permissions.query not supported — we'll need to ask
         }
 
-        if (micGranted) {
-            // Already have permission — go straight to conversation
-            showConversationScreen();
-            setState(State.LISTENING);
-            try {
-                await vadInstance.initialize();
-                await vadInstance.start();
-            } catch (err) {
-                console.error('VAD init error:', err);
-                enableManualMode();
+        // Show pre-session mood check-in
+        const startConversation = async () => {
+            if (micGranted) {
+                showConversationScreen();
+                setState(State.LISTENING);
+                try {
+                    await vadInstance.initialize();
+                    await vadInstance.start();
+                } catch (err) {
+                    console.error('VAD init error:', err);
+                    enableManualMode();
+                }
+            } else {
+                await showMicPermissionScreen();
             }
-        } else {
-            // Show mic permission interstitial
-            await showMicPermissionScreen();
-        }
+        };
+
+        showMoodCheckin('आज कैसा महसूस हो रहा है?', (mood) => {
+            ws.sendMoodCheckin(mood, 'pre');
+            startConversation();
+        });
 
         // Clear loading state after transition
         card.classList.remove('loading');
@@ -325,9 +324,13 @@ allowMicBtn.addEventListener('click', async () => {
 // ==================
 
 changePersonaBtn.addEventListener('click', () => {
-    ws.switchPersona(currentPersona);
-    clearTranscript();
-    showSelectScreen();
+    // Show post-session mood check-in before going back
+    showMoodCheckin('बात करके कैसा लगा?', (mood) => {
+        ws.sendMoodCheckin(mood, 'post');
+        ws.endSession();
+        clearTranscript();
+        showSelectScreen();
+    });
 });
 
 // ==================
@@ -491,6 +494,47 @@ ws.onResponseComplete = (message) => {
     }
 };
 
+ws.onCrisisDetected = (message) => {
+    // Show crisis overlay with helpline information
+    if (processingTimeout) { clearTimeout(processingTimeout); processingTimeout = null; }
+    removeThinkingBubble();
+
+    const overlay = document.getElementById('crisis-overlay');
+    const hindiMsg = document.getElementById('crisis-message-hindi');
+    const englishMsg = document.getElementById('crisis-message-english');
+    const helplinesDiv = document.getElementById('crisis-helplines');
+
+    hindiMsg.textContent = message.response_hindi || '';
+    englishMsg.textContent = message.response_english || '';
+
+    // Build helpline cards
+    helplinesDiv.innerHTML = '';
+    if (message.helplines) {
+        message.helplines.forEach(h => {
+            const card = document.createElement('div');
+            card.className = 'helpline-card';
+            card.innerHTML = `
+                <a href="tel:${h.number.replace(/-/g, '')}" class="helpline-link">
+                    <span class="helpline-name">${h.name}</span>
+                    <span class="helpline-number">📞 ${h.number}</span>
+                    <span class="helpline-available">${h.available}</span>
+                </a>
+            `;
+            helplinesDiv.appendChild(card);
+        });
+    }
+
+    overlay.style.display = 'flex';
+
+    // Acknowledge button
+    const ackBtn = document.getElementById('crisis-acknowledge-btn');
+    ackBtn.onclick = () => {
+        overlay.style.display = 'none';
+        setState(State.LISTENING);
+        vadInstance.start();
+    };
+};
+
 ws.onInterrupted = (message) => {
     // Server acknowledged the interruption — nothing extra to do
     // Frontend already stopped playback in _handleInterrupt
@@ -627,6 +671,165 @@ window.addEventListener('beforeunload', () => {
     vadInstance.destroy();
     orb.stop();
 });
+
+// ==================
+// Auth Flow
+// ==================
+
+let _pendingPhone = '';
+
+// If already authenticated, skip to persona selection
+function initAuthFlow() {
+    if (auth.isAuthenticated) {
+        if (auth.needsOnboarding) {
+            _showScreen(loginScreen, onboardingScreen);
+        } else {
+            _showScreen(loginScreen, selectScreen);
+        }
+    }
+    // Otherwise login screen is already showing
+}
+
+function _showScreen(fromScreen, toScreen) {
+    if (fromScreen) {
+        fromScreen.classList.remove('active');
+        fromScreen.style.display = '';
+    }
+    toScreen.style.display = 'flex';
+    toScreen.classList.add('active');
+}
+
+// Send OTP
+document.getElementById('send-otp-btn').addEventListener('click', async () => {
+    const phoneInput = document.getElementById('phone-input');
+    const status = document.getElementById('otp-status');
+    const btn = document.getElementById('send-otp-btn');
+    const phone = phoneInput.value.replace(/\s/g, '');
+
+    if (!phone || phone.length < 10) {
+        status.textContent = 'कृपया सही phone number डालें';
+        status.style.color = '#d32f2f';
+        return;
+    }
+
+    _pendingPhone = '+91' + phone;
+    btn.textContent = '⏳ भेज रहे हैं...';
+    btn.disabled = true;
+
+    const result = await auth.sendOtp(_pendingPhone);
+    btn.textContent = 'OTP भेजें';
+    btn.disabled = false;
+
+    if (result.success) {
+        document.getElementById('phone-step').style.display = 'none';
+        document.getElementById('otp-step').style.display = 'block';
+        status.textContent = '';
+    } else {
+        status.textContent = result.message || 'OTP भेजने में error हुआ';
+        status.style.color = '#d32f2f';
+    }
+});
+
+// Verify OTP
+document.getElementById('verify-otp-btn').addEventListener('click', async () => {
+    const code = document.getElementById('otp-input').value.trim();
+    const status = document.getElementById('verify-status');
+    const btn = document.getElementById('verify-otp-btn');
+
+    if (!code || code.length < 4) {
+        status.textContent = 'कृपया OTP डालें';
+        status.style.color = '#d32f2f';
+        return;
+    }
+
+    btn.textContent = '⏳ Verify हो रहा है...';
+    btn.disabled = true;
+
+    const result = await auth.verifyOtp(_pendingPhone, code);
+    btn.textContent = 'Verify करें';
+    btn.disabled = false;
+
+    if (result.success) {
+        if (auth.needsOnboarding) {
+            _showScreen(loginScreen, onboardingScreen);
+        } else {
+            _showScreen(loginScreen, selectScreen);
+        }
+    } else {
+        status.textContent = result.message || 'गलत OTP, फिर से try करें';
+        status.style.color = '#d32f2f';
+    }
+});
+
+// Back to phone input
+document.getElementById('back-to-phone-btn').addEventListener('click', () => {
+    document.getElementById('otp-step').style.display = 'none';
+    document.getElementById('phone-step').style.display = 'block';
+});
+
+// Google Sign-In (placeholder — needs Google SDK integration)
+document.getElementById('google-signin-btn').addEventListener('click', () => {
+    alert('Google Sign-In requires Google Client SDK setup. Configure GOOGLE_CLIENT_ID in .env.');
+});
+
+// Skip login
+document.getElementById('skip-login-btn').addEventListener('click', () => {
+    _showScreen(loginScreen, selectScreen);
+});
+
+// Onboarding submit
+document.getElementById('onboard-submit-btn').addEventListener('click', async () => {
+    const name = document.getElementById('onboard-name').value.trim();
+    const age = document.getElementById('onboard-age').value;
+    const reason = document.getElementById('onboard-reason').value;
+
+    if (!name) {
+        alert('कृपया अपना नाम लिखें');
+        return;
+    }
+
+    const btn = document.getElementById('onboard-submit-btn');
+    btn.textContent = '⏳ सेव हो रहा है...';
+    btn.disabled = true;
+
+    await auth.completeOnboarding(name, age, reason);
+    btn.textContent = 'शुरू करें →';
+    btn.disabled = false;
+
+    _showScreen(onboardingScreen, selectScreen);
+});
+
+// ==================
+// Mood Check-in
+// ==================
+
+let _moodCallback = null;
+
+function showMoodCheckin(question, callback) {
+    const overlay = document.getElementById('mood-overlay');
+    const questionEl = document.getElementById('mood-question');
+    questionEl.textContent = question;
+    _moodCallback = callback;
+    overlay.style.display = 'flex';
+}
+
+document.querySelectorAll('.mood-emoji').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const mood = parseInt(btn.dataset.mood);
+        document.getElementById('mood-overlay').style.display = 'none';
+        if (_moodCallback) {
+            _moodCallback(mood);
+            _moodCallback = null;
+        }
+    });
+});
+
+// ==================
+// Init
+// ==================
+
+// Check auth state on load
+initAuthFlow();
 
 // Pre-connect WebSocket
 ws.connect();

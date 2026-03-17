@@ -54,6 +54,328 @@ body {
 }
 
 /* ==================== */
+/* Disclaimer Banner    */
+/* ==================== */
+
+.disclaimer-banner {
+    background: rgba(255, 193, 7, 0.12);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 0.78rem;
+    color: #9a7b00;
+    text-align: center;
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+/* ==================== */
+/* Crisis Overlay       */
+/* ==================== */
+
+.crisis-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.crisis-container {
+    background: #fff;
+    border-radius: 20px;
+    padding: 32px 24px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.crisis-icon { font-size: 3rem; margin-bottom: 12px; }
+
+.crisis-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #d32f2f;
+    margin-bottom: 16px;
+}
+
+.crisis-message {
+    font-size: 0.95rem;
+    color: #333;
+    line-height: 1.6;
+    margin-bottom: 8px;
+}
+
+.crisis-message-en {
+    font-size: 0.82rem;
+    color: #777;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+.crisis-helplines {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.helpline-card {
+    border: 2px solid #d32f2f;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.helpline-link {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 16px;
+    text-decoration: none;
+    color: inherit;
+    gap: 2px;
+}
+
+.helpline-link:active { background: #fbe9e7; }
+
+.helpline-name { font-size: 0.85rem; font-weight: 600; color: #333; }
+.helpline-number { font-size: 1.1rem; font-weight: 700; color: #d32f2f; }
+.helpline-available { font-size: 0.75rem; color: #888; }
+
+.crisis-acknowledge-btn {
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 12px 24px;
+    font-size: 0.9rem;
+    color: #555;
+    cursor: pointer;
+    width: 100%;
+    margin-bottom: 12px;
+    font-family: inherit;
+}
+
+.crisis-acknowledge-btn:active { background: #eee; }
+
+.crisis-footer {
+    font-size: 0.72rem;
+    color: #999;
+    line-height: 1.4;
+}
+
+/* ==================== */
+/* Auth Screens         */
+/* ==================== */
+
+.auth-container {
+    max-width: 380px;
+    width: 100%;
+    padding: 32px 24px;
+    text-align: center;
+}
+
+.auth-step { margin-bottom: 16px; }
+
+.auth-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    text-align: left;
+}
+
+.phone-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.country-code {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+    border-radius: 10px;
+    border: 1px solid var(--card-border);
+}
+
+.auth-input {
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 1rem;
+    font-family: inherit;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--text);
+    outline: none;
+    margin-bottom: 12px;
+    box-sizing: border-box;
+    -webkit-appearance: none;
+}
+
+.auth-input:focus {
+    border-color: var(--saathi, #4CAF50);
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.12);
+}
+
+.otp-input {
+    text-align: center;
+    font-size: 1.4rem;
+    letter-spacing: 8px;
+    font-weight: 600;
+}
+
+.auth-btn {
+    width: 100%;
+    padding: 14px;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: inherit;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #66BB6A, #43A047);
+    color: #fff;
+    cursor: pointer;
+    margin-bottom: 8px;
+}
+
+.auth-btn:active { transform: scale(0.98); }
+.auth-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.auth-status {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    min-height: 1.2em;
+    margin: 4px 0;
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--card-border);
+}
+
+.google-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--text);
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.google-btn:active { background: var(--bg-secondary); }
+
+.auth-link {
+    display: block;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    cursor: pointer;
+    padding: 8px;
+    font-family: inherit;
+}
+
+.skip-link {
+    margin-top: 16px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+}
+
+.onboard-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 24px;
+    color: var(--text);
+}
+
+/* ==================== */
+/* Mood Overlay         */
+/* ==================== */
+
+.mood-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 9000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.mood-container {
+    background: #fff;
+    border-radius: 20px;
+    padding: 32px 24px;
+    max-width: 360px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.mood-question {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 24px;
+}
+
+.mood-emojis {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
+.mood-emoji {
+    font-size: 2.2rem;
+    background: none;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    width: 56px;
+    height: 56px;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mood-emoji:hover {
+    transform: scale(1.2);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+.mood-emoji:active {
+    transform: scale(1.3);
+}
+
+/* ==================== */
 /* Screens              */
 /* ==================== */
 

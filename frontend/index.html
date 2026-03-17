@@ -39,19 +39,106 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+    <!-- Screen 0: Login -->
+    <div id="login-screen" class="screen active">
+        <div class="auth-container">
+            <h1 class="brand">साथी</h1>
+            <p class="tagline">अपने मन की बात करो। साथी सुनेगा।</p>
+            <div class="disclaimer-banner">
+                साथी एक AI दोस्त है, therapist नहीं। गंभीर समस्या में professional help लें।
+            </div>
+
+            <div id="phone-step" class="auth-step">
+                <label class="auth-label">Phone Number</label>
+                <div class="phone-input-row">
+                    <span class="country-code">+91</span>
+                    <input type="tel" id="phone-input" class="auth-input" placeholder="98765 43210" maxlength="10" autocomplete="tel">
+                </div>
+                <button id="send-otp-btn" class="auth-btn">OTP भेजें</button>
+                <p id="otp-status" class="auth-status"></p>
+            </div>
+
+            <div id="otp-step" class="auth-step" style="display:none;">
+                <label class="auth-label">OTP दर्ज करें</label>
+                <input type="text" id="otp-input" class="auth-input otp-input" placeholder="6-digit OTP" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+                <button id="verify-otp-btn" class="auth-btn">Verify करें</button>
+                <p id="verify-status" class="auth-status"></p>
+                <button id="back-to-phone-btn" class="auth-link">← दूसरा नंबर डालें</button>
+            </div>
+
+            <div class="auth-divider"><span>या</span></div>
+            <button id="google-signin-btn" class="google-btn">
+                Google से login करें
+            </button>
+
+            <button id="skip-login-btn" class="auth-link skip-link">बिना login के try करें →</button>
+        </div>
+    </div>
+
+    <!-- Screen 0.5: Onboarding -->
+    <div id="onboarding-screen" class="screen">
+        <div class="auth-container">
+            <h2 class="onboard-title">👋 नमस्ते! थोड़ा अपने बारे में बताओ</h2>
+
+            <label class="auth-label">तुम्हारा नाम</label>
+            <input type="text" id="onboard-name" class="auth-input" placeholder="नाम लिखो" maxlength="50">
+
+            <label class="auth-label">उम्र</label>
+            <select id="onboard-age" class="auth-input">
+                <option value="">-- चुनो --</option>
+                <option value="13-17">13-17</option>
+                <option value="18-24">18-24</option>
+                <option value="25-34">25-34</option>
+                <option value="35-44">35-44</option>
+                <option value="45+">45+</option>
+            </select>
+
+            <label class="auth-label">यहाँ क्यों आए?</label>
+            <select id="onboard-reason" class="auth-input">
+                <option value="">-- चुनो --</option>
+                <option value="stress">Stress / तनाव</option>
+                <option value="loneliness">Loneliness / अकेलापन</option>
+                <option value="anxiety">Anxiety / चिंता</option>
+                <option value="just_talk">बस बात करनी है</option>
+                <option value="other">कुछ और</option>
+            </select>
+
+            <button id="onboard-submit-btn" class="auth-btn">शुरू करें →</button>
+        </div>
+    </div>
+
+    <!-- Mood Check-in Overlay -->
+    <div id="mood-overlay" class="mood-overlay" style="display:none;">
+        <div class="mood-container">
+            <h3 id="mood-question" class="mood-question">आज कैसा महसूस हो रहा है?</h3>
+            <div class="mood-emojis">
+                <button class="mood-emoji" data-mood="1">😢</button>
+                <button class="mood-emoji" data-mood="2">😟</button>
+                <button class="mood-emoji" data-mood="3">😐</button>
+                <button class="mood-emoji" data-mood="4">🙂</button>
+                <button class="mood-emoji" data-mood="5">😊</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Screen 1: Persona Selection -->
-    <div id="select-screen" class="screen active">
+    <div id="select-screen" class="screen">
         <div class="select-container">
             <div class="select-header">
                 <h1 class="brand">साथी</h1>
                 <p class="tagline">Your AI best friend who speaks Hindi 🇮🇳</p>
             </div>
 
+            <!-- Disclaimer Banner -->
+            <div class="disclaimer-banner">
+                साथी एक AI दोस्त है, therapist नहीं। गंभीर समस्या में professional help लें।
+            </div>
+
             <!-- Hero Explainer Section -->
             <div class="hero-explainer">
                 <div class="hero-what">
-                    <p class="hero-line">बोलो हिंदी में। सुनो हिंदी में। बस बात करो।</p>
-                    <p class="hero-sub">Saathi is a voice AI you can talk to — just like calling a friend. No typing needed.</p>
+                    <p class="hero-line">अपने मन की बात करो। साथी सुनेगा।</p>
+                    <p class="hero-sub">Saathi is a wellness companion you can talk to — just like calling a caring friend. No typing needed.</p>
                 </div>
                 <div class="how-it-works">
                     <div class="step">
@@ -71,89 +158,58 @@
                 </div>
             </div>
 
-            <p class="instruction">अपना दोस्त चुनो 👇</p>
+            <p class="instruction">अपना साथी चुनो 👇</p>
 
             <div class="persona-cards">
-                <button class="persona-card empathy" data-persona="empathy">
+                <button class="persona-card saathi" data-persona="saathi">
                     <div class="card-avatar">
-                        <div class="avatar-circle empathy-avatar">
-                            <span class="avatar-letter">ह</span>
+                        <div class="avatar-circle saathi-avatar">
+                            <span class="avatar-letter">स</span>
                         </div>
                     </div>
                     <div class="card-info">
-                        <div class="card-name">हमदर्द दोस्त</div>
+                        <div class="card-name">साथी</div>
                         <div class="card-desc">दिल की बात सुनेगा, समझेगा</div>
-                        <div class="card-quote">Your emotional support buddy</div>
+                        <div class="card-quote">Your compassionate listener</div>
                     </div>
                     <div class="card-loading">
                         <div class="spinner"></div>
                     </div>
                 </button>
 
-                <button class="persona-card funny" data-persona="funny">
+                <button class="persona-card guided" data-persona="guided">
                     <div class="card-avatar">
-                        <div class="avatar-circle funny-avatar">
-                            <span class="avatar-letter">क</span>
+                        <div class="avatar-circle guided-avatar">
+                            <span class="avatar-letter">दी</span>
                         </div>
                     </div>
                     <div class="card-info">
-                        <div class="card-name">कॉमेडियन यार</div>
-                        <div class="card-desc">हँसाएगा, jokes सुनाएगा</div>
-                        <div class="card-quote">Will make you laugh</div>
-                    </div>
-                    <div class="card-loading">
-                        <div class="spinner"></div>
-                    </div>
-                </button>
-
-                <button class="persona-card angry" data-persona="angry">
-                    <div class="card-avatar">
-                        <div class="avatar-circle angry-avatar">
-                            <span class="avatar-letter">अ</span>
-                        </div>
-                    </div>
-                    <div class="card-info">
-                        <div class="card-name">Uncle जी</div>
-                        <div class="card-desc">चिड़चिड़ा but प्यारा uncle</div>
-                        <div class="card-quote">Grumpy but lovable</div>
-                    </div>
-                    <div class="card-loading">
-                        <div class="spinner"></div>
-                    </div>
-                </button>
-
-                <button class="persona-card happy" data-persona="happy">
-                    <div class="card-avatar">
-                        <div class="avatar-circle happy-avatar">
-                            <span class="avatar-letter">च</span>
-                        </div>
-                    </div>
-                    <div class="card-info">
-                        <div class="card-name">चीयरलीडर</div>
-                        <div class="card-desc">हर बात पर hype करेगा</div>
-                        <div class="card-quote">Your biggest cheerleader</div>
-                    </div>
-                    <div class="card-loading">
-                        <div class="spinner"></div>
-                    </div>
-                </button>
-
-                <button class="persona-card loving" data-persona="loving">
-                    <div class="card-avatar">
-                        <div class="avatar-circle loving-avatar">
-                            <span class="avatar-letter">द</span>
-                        </div>
-                    </div>
-                    <div class="card-info">
-                        <div class="card-name">प्यारे दादाजी</div>
-                        <div class="card-desc">प्यार से life advice देंगे</div>
-                        <div class="card-quote">Warm grandparent wisdom</div>
+                        <div class="card-name">दीदी / भैया</div>
+                        <div class="card-desc">तरीके सिखाएगा, guide करेगा</div>
+                        <div class="card-quote">Your wellness guide</div>
                     </div>
                     <div class="card-loading">
                         <div class="spinner"></div>
                     </div>
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Crisis Overlay -->
+    <div id="crisis-overlay" class="crisis-overlay" style="display:none;">
+        <div class="crisis-container">
+            <div class="crisis-icon">🆘</div>
+            <h2 class="crisis-title">आप अकेले नहीं हैं</h2>
+            <p id="crisis-message-hindi" class="crisis-message"></p>
+            <p id="crisis-message-english" class="crisis-message-en"></p>
+            <div id="crisis-helplines" class="crisis-helplines"></div>
+            <button id="crisis-acknowledge-btn" class="crisis-acknowledge-btn">
+                मैंने देख लिया — बात जारी रखो
+            </button>
+            <p class="crisis-footer">
+                साथी एक AI दोस्त है, therapist नहीं। गंभीर समस्या में professional help लें।
+            </p>
         </div>
     </div>
 
@@ -211,6 +267,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.19/dist/bundle.min.js"></script>
     <script src="/static/audio-player.js"></script>
     <script src="/static/websocket.js"></script>
+    <script src="/static/auth.js"></script>
     <script src="/static/orb.js"></script>
     <script src="/static/vad.js"></script>
     <script src="/static/app.js"></script>

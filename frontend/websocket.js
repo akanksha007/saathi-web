@@ -20,6 +20,7 @@ class SaathiWebSocket {
         this.onBackchannelAudio = null;
         this.onInterrupted = null;
         this.onResponseComplete = null;
+        this.onCrisisDetected = null;
         this.onError = null;
         this.onConnectionChange = null;
     }
@@ -110,6 +111,11 @@ class SaathiWebSocket {
                 console.log('💬 Backchannel:', message.text);
                 if (this.onBackchannelAudio) this.onBackchannelAudio(message);
                 break;
+            case 'crisis_detected':
+                // Crisis/safety keywords detected — show helplines
+                console.log('🚨 Crisis detected:', message.severity);
+                if (this.onCrisisDetected) this.onCrisisDetected(message);
+                break;
             case 'interrupted':
                 // Server acknowledged interruption
                 console.log('⛔ Interruption acknowledged');
@@ -122,6 +128,9 @@ class SaathiWebSocket {
             case 'error':
                 console.error('⚠️ Server error:', message.message);
                 if (this.onError) this.onError(message);
+                break;
+            case 'mood_saved':
+                console.log('😊 Mood saved:', message.timing, message.mood);
                 break;
             case 'pong':
                 break;
@@ -160,8 +169,17 @@ class SaathiWebSocket {
     /**
      * Start a new session with selected persona.
      */
-    startSession(persona) {
-        this.send('start_session', { persona, user_id: this.userId });
+    startSession(persona, token) {
+        const payload = { persona, user_id: this.userId };
+        if (token) payload.token = token;
+        this.send('start_session', payload);
+    }
+
+    /**
+     * Send a mood check-in.
+     */
+    sendMoodCheckin(mood, timing) {
+        this.send('mood_checkin', { mood, timing });
     }
 
     /**

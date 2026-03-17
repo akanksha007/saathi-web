@@ -1,5 +1,6 @@
 """
-Saathi Web Sandbox — Configuration.
+Saathi — Configuration.
+Mental health companion for Hindi speakers.
 """
 
 import os
@@ -8,7 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv(override=False)  # Don't override Railway's env vars
 
-# API Keys
+# ─── API Keys ───
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
@@ -20,6 +21,33 @@ if not OPENAI_API_KEY:
     print("   Set it via: export OPENAI_API_KEY=sk-...")
     print("   Or add it to .env file in the backend directory.")
     print("   On Railway: add it in the Variables tab.")
+
+# ─── Database ───
+DATABASE_URL = os.getenv("DATABASE_URL", "")
+if DATABASE_URL:
+    print(f"🔧 Config loaded: DATABASE_URL=set ({DATABASE_URL[:30]}...)")
+else:
+    print("⚠️  WARNING: DATABASE_URL is not set. Database features will be unavailable.")
+
+# ─── Auth — OTP Provider ───
+OTP_PROVIDER = os.getenv("OTP_PROVIDER", "twilio")  # "msg91" or "twilio"
+
+# MSG91
+MSG91_AUTH_KEY = os.getenv("MSG91_AUTH_KEY", "")
+MSG91_TEMPLATE_ID = os.getenv("MSG91_TEMPLATE_ID", "")
+
+# Twilio
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
+TWILIO_VERIFY_SERVICE_ID = os.getenv("TWILIO_VERIFY_SERVICE_ID", "")
+
+# ─── Auth — Google ───
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+
+# ─── Auth — JWT ───
+JWT_SECRET = os.getenv("JWT_SECRET", "saathi-dev-secret-change-in-production")
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRY_DAYS = int(os.getenv("JWT_EXPIRY_DAYS", "7"))
 
 # STT — Use Groq Whisper if available (5-10x faster), fallback to OpenAI
 STT_PROVIDER = "groq" if GROQ_API_KEY else "openai"
@@ -48,13 +76,10 @@ MAX_CONVERSATION_HISTORY = 30  # 15 turns (user + assistant)
 TTS_MODEL = "tts-1"
 TTS_VOICE = "nova"  # Default voice (overridden per persona)
 
-# Per-persona TTS voices for distinct character feel
+# Per-persona TTS voices — therapy-informed companions
 TTS_VOICES = {
-    "empathy": "nova",      # Warm, gentle — fits the caring friend
-    "funny": "echo",        # Energetic, expressive — fits the comedian
-    "angry": "onyx",        # Deep, gruff — fits the irritated uncle
-    "happy": "shimmer",     # Bright, enthusiastic — fits the cheerleader
-    "loving": "fable",      # Soft, wise — fits the loving grandparent
+    "saathi": "nova",       # Warm, gentle — person-centered companion
+    "guided": "shimmer",    # Calm, structured — CBT-lite wellness guide
 }
 
 # Temp directory for audio files
