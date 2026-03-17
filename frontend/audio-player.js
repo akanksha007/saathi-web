@@ -45,6 +45,15 @@ class AudioQueue {
     }
 
     /**
+     * Pre-initialize AudioContext early (call after user gesture like persona selection).
+     * This avoids ~20-50ms lazy creation delay when first audio arrives.
+     */
+    warmup() {
+        this._ensureContext();
+        console.log('🔊 AudioContext pre-initialized, state:', this.audioContext.state);
+    }
+
+    /**
      * Add an MP3 audio chunk to the queue for gapless playback.
      * @param {string} base64Mp3 - Base64 encoded MP3 data.
      * @param {number} index - Chunk index (0 = first).

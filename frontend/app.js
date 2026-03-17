@@ -228,6 +228,9 @@ personaCards.forEach(card => {
         const persona = card.dataset.persona;
         currentPersona = persona;
 
+        // Pre-initialize AudioContext on user gesture to avoid lazy creation delay
+        audioPlayer.warmup();
+
         // Show loading state on the tapped card
         personaCards.forEach(c => c.classList.remove('loading'));
         card.classList.add('loading');

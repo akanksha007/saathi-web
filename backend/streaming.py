@@ -152,7 +152,7 @@ async def _stream_tts_chunk(websocket: WebSocket, text: str, session: Session, c
     """
     pcm_sub_index = 0
     try:
-        async for pcm_chunk in synthesize_streaming(text, session.persona, chunk_size=8192):
+        async for pcm_chunk in synthesize_streaming(text, session.persona, chunk_size=4096):
             if session.interrupted:
                 print(f"  ⛔ TTS streaming interrupted at sub-chunk {pcm_sub_index}")
                 return chunk_index
@@ -217,15 +217,15 @@ async def process_audio(websocket: WebSocket, audio_bytes: bytes, session: Sessi
             })
             return
 
-        # Send STT result to browser (for debug/display)
-        await websocket.send_json({"type": "stt_result", "text": text})
-
-        # Step 2: Send backchannel filler while LLM processes
-        # Run backchannel and LLM start concurrently
-        # Backchannel now has a built-in delay — it will only play if LLM is slow
+        # Step 2: Start LLM + backchannel immediately (before sending STT result)
+        # This saves ~5-20ms by not waiting for the STT result websocket send
         backchannel_task = asyncio.create_task(send_backchannel(websocket, session))
+        llm_stream = stream_response(text, session.history, session.persona_prompt)
 
         t1 = time.time()
+
+        # Send STT result to browser (cosmetic — doesn't block the pipeline)
+        await websocket.send_json({"type": "stt_result", "text": text})
 
         # Step 3: Stream LLM response + chunk into clauses + Streaming TTS each
         sentence_buffer = ""
@@ -234,7 +234,7 @@ async def process_audio(websocket: WebSocket, audio_bytes: bytes, session: Sessi
         ttfa_logged = False
         llm_first_token_time = None
 
-        async for token in stream_response(text, session.history, session.persona_prompt):
+        async for token in llm_stream:
             # Check for interruption
             if session.interrupted:
                 print(f"  ⛔ Pipeline interrupted during LLM streaming")
